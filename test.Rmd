@@ -1,0 +1,43 @@
+```markdown
+---
+title: "Untitled"
+author: "Nora Sun"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+```
+
+```{r data-generation}
+# Generate sample data
+set.seed(123)
+sample_data <- data.frame(
+    x = rnorm(100),
+    y = rnorm(100)
+)
+head(sample_data)
+```
+
+```{r data-visualization}
+# Create a scatter plot
+ggplot(sample_data, aes(x = x, y = y)) +
+    geom_point() +
+    theme_minimal() +
+    labs(title = "Sample Scatter Plot", x = "X-axis", y = "Y-axis")
+```
+
+```{r summary-statistics}
+# Calculate summary statistics
+summary_stats <- sample_data %>%
+    summarise(
+        mean_x = mean(x),
+        mean_y = mean(y),
+        sd_x = sd(x),
+        sd_y = sd(y)
+    )
+summary_stats
+```
