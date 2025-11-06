@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 
+# TEST SET 1
+
 mu0=10000
 tau2=15000
 sigma2=5000
