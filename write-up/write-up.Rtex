@@ -1,0 +1,232 @@
+\documentclass[letterpaper, 11pt]{extarticle}
+\input{preamble}
+\input{format}
+\input{commands}
+\usepackage{newpxmath}
+\usepackage[margin=0.95in]{geometry}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\definecolor{softpurple}{HTML}{9C88B9}
+\definecolor{softblue}{HTML}{B8BDDE}
+\usepackage{cancel}
+\usepackage{csquotes}
+\usepackage{enumitem}
+
+\definecolor{darkblue}{RGB}{13, 39, 61}  % Yankees Blue
+\definecolor{mediumblue}{RGB}{62, 105, 133}  % Teal Blue
+\definecolor{lightblue}{RGB}{138, 167, 188}  % Pewter Blue
+\definecolor{pastelblue}{RGB}{166, 190, 209}  % Pastel Blue
+\definecolor{columbiablue}{RGB}{205, 215, 223}  % Columbia Blue
+\definecolor{graytext}{RGB}{90, 90, 90}  % Neutral grey for comments
+\usepackage{listings}
+\lstset{
+  language=R,
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny,
+  stepnumber=1}
+
+
+\lstset{ 
+  language=R,
+  basicstyle=\ttfamily\small\color{darkblue},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  numbersep=5pt,
+  backgroundcolor=\color{white},
+  showspaces=false,
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=true,
+  captionpos=b,
+  escapeinside={\%*}{*)},
+  commentstyle=\color{graytext},
+  keywordstyle=\color{softpurple},
+  stringstyle=\color{pastelblue}
+}
+
+\setcitestyle{square}
+
+\usepackage{color}
+\usepackage{framed}
+\newcommand{\sam}[1]{
+  {\color{blue} [SAM: {#1}]}
+ }
+ \newcommand{\asl}[1]{
+  {\color{blue} [ASL: {#1}]}
+ }
+
+ \definecolor{nyscolor}{HTML}{a63a47}
+
+\newcommand{\nys}[1]{%
+  {\color{nyscolor} [NYS: {#1}]}%
+}
+
+ \newcommand{\nys}[1]{
+  {\color{blue} [NYS: {#1}]}
+ }
+
+% Custom colors
+\definecolor{shadecolor}{RGB}{255,255,255}  % white background
+\definecolor{Rcode}{RGB}{136, 18, 128}      % keyword purple (similar to print)
+\definecolor{Rout}{RGB}{90, 90, 90}         % output gray
+\definecolor{Rcomment}{RGB}{110,110,110}    % comment gray
+
+% Redefine how R chunks are styled
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd{\@Verbatim}{\fbox}{\color{black}}{}{}
+\makeatother
+
+% Required if using knitr
+\usepackage{alltt}
+\usepackage{fancyvrb}
+\DefineVerbatimEnvironment{Sinput}{Verbatim}{fontshape=sl,formatcom=\color{Rcode},commandchars=\\\{\}}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{formatcom=\color{Rout}}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{formatcom=\color{Rcode}}
+
+\geometry{letterpaper}                  
+\hypersetup{colorlinks=false, allcolors=blue}
+
+\begin{document}
+\begin{Large}
+    \textsf{\textbf{Empirical Bayes: Step Count Problem}}   \par
+    Statistical Reinforcement Learning Lab
+\end{Large}
+
+\vspace{2ex}
+
+\textsf{\textbf{Problem Statement}}
+
+In our study, we have a population of 30 unique individuals and are interested in investigating the number of steps each person takes in a 30-minute interval. We designate the true mean steps for each of 30 individuals as $\mu_1, \mu_2, \dots, \mu_i$ for $i=1, 2,\dots, 30$  ($n=30$). 
+
+During the study, we use a device to measure the number of steps each individual takes during a 30-minute interval. We use the device to perform this measurement once for each individual. 
+
+Now, we have two data points for each individual:\begin{enumerate}
+\itemsep0em 
+    \item The device's step count for that individual.
+    \item A measure of uncertainty provided by the device, which describes how sure the device is that it counted the number of steps correctly.
+\end{enumerate}
+We designate the observed step counts as $x_1, x_2, \dots, x_i$ and the measures of uncertainty as $\sigma_1, \sigma_2, \dots, \sigma_i$. Thus, our data for each of the 30 individuals consists of one pair of values, $(x_i, \sigma_i)$. 
+
+The true means and hyperparameters are unknown to us. The observed step counts and measures of uncertainty are our data and thus are known to us. How can we estimate $\mu_0$ and $\tau^2$ using this data?
+\\
+
+\textsf{\textbf{Empirical Bayes Solution}}
+
+We will approach this problem using Raudenbush \& Bryk's empirical Bayes model for meta-analyses \cite{doi:10.3102/10769986010002075}. 
+
+First, we assume that each person's true mean steps is a draw from the same underlying normal distribution with some non-zero variance $\tau^2$: $$\mu_i \sim \mathcal{N}(\mu_0, \tau^2).$$ 
+
+We also assume each person's step count on a given day is a draw from a normal distribution centered at that person's mean, $\mu_i$, with non-zero variance $\sigma_i^2$. (We assume that the device's uncertainty measurement, $\sigma_i^2$, accurately captures the true within-person variance.)
+
+Then, for this problem, $\tau^2$ designates population variance while $\sigma_i^2$ designates within-person variance. 
+
+By equation 8 (p. 78) and equation 18 (p. 80) \cite{doi:10.3102/10769986010002075}, we can model each individual's observation is a draw from a normal distribution centered at that person's mean $\mu_i$. The variance of this observation is the sum of within-person and population variance. Therefore, the distribution of the observed data $\textbf{x}$ is:
+$$x_i \sim \mathcal{N}(\mu_0, \sigma_i^2+\tau^2), \quad x_i \mid \mu_i \sim \mathcal{N}(\mu_i, \sigma_i^2).$$
+
+Let us note that our model parallels Raudenbush \& Bryk's model as follows \cite{doi:10.3102/10769986010002075}: $d_i = x_i$, $W_i' = 1$, $\gamma = \mu_0$, $v_i = \sigma_i^2$. Recall that in our problem, $\sigma_i^2$ is known to us as it is provided by the device, but $\tau^2$ and $\mu_0$ are both unknown. Thus, we are in the scenario with unknown variance and will reference the \textit{Variance estimation} section (pp. 80-82). 
+
+We can derive the likelihood and log-likelihood functions of $\tau^2$ and $\mu_0$ from the normal PDF as follows:
+\begin{align}
+L(\mu_0, \tau^2)
+&= \prod_{i=1}^{n}
+  \mathcal{N}\!\left(x_i \mid \mu_0,\, \sigma_i^2 + \tau^2\right)\\
+L(\mu_0, \tau^2)
+&= \prod_{i=1}^{n}
+  \frac{1}{\sqrt{2\pi(\sigma_i^2 + \tau^2)}}
+  \exp\!\left[
+    -\frac{(x_i - \mu_0)^2}{2(\sigma_i^2 + \tau^2)}
+  \right]\\
+  \ell(\mu_0, \tau^2)
+&= -\frac{1}{2} \sum_{i=1}^{n}
+  \left\{
+    \log(\sigma_i^2 + \tau^2)
+    + \frac{(x_i - \mu_0)^2}{\sigma_i^2 + \tau^2}
+  \right\}
+\end{align}
+We can rewrite the conditional log-likelihood as follows:
+\begin{align}
+Q(\mu_0;\tau^2)=\sum_{i=1}^{n}w_i(\tau^2)\,(x_i-\mu_0)^2,
+\quad w_i(\tau^2)=\frac{1}{\sigma_i^2+\tau^2}
+\end{align}
+Next, we differentiate w.r.t. $\mu_0$ to determine the MLE estimator for $\mu_0$ conditional on $\tau^2$. Here, we are considering $\tau^2$ as a constant and hence the $\log(\sigma_i^2 + \tau^2)$ term is dropped.
+\begin{align}
+    \frac{\partial Q}{\partial \mu_0}
+&=-2\sum_{i=1}^{n}w_i(\tau^2)\,(x_i-\mu_0)=0\\
+\mu_0^*(\tau^2)&=\frac{\sum_{i=1}^{n} w_i(\tau^2)\,x_i}{\sum_{i=1}^{n} w_i(\tau^2)}
+\end{align}
+We have effectively written the conditional MLE of $\mu_0$ in terms of $\tau^2$, so we only have one unknown variable remaining ($\tau^2$). We will replace $\mu_0$ with our conditional MLE in the original log-likelihood equation. Now, we have:
+\begin{align}
+    \ell_p(\tau^2)
+= -\frac12\left\{
+\sum_{i=1}^{n}\log(\sigma_i^2+\tau^2)
+	+	Q_1(\tau^2)
+\right\}, \quad Q_1(\tau^2)=\sum_{i=1}^{n} w_i(\tau^2)\,\bigl(x_i-\mu_0^*(\tau^2)\bigr)^2
+\end{align} 
+
+We define the MLE of $\tau^2$ as:
+\begin{align}
+    \ \hat{\tau}^2=\arg\max_{\tau^2\ge 0}\ \ell_p(\tau^2)\
+\end{align}
+Now, we can substitute this estimate back into our conditional MLE estimator for $\mu_0$ to obtain an estimate for $\mu_0$:
+\begin{align}
+    \ \hat{\mu}_0=\mu_0^*(\hat{\tau}^2)
+=\frac{\sum_{i=1}^{n} (\sigma_i^2+\hat{\tau}^2)^{-1} x_i}
+{\sum_{i=1}^{n} (\sigma_i^2+\hat{\tau}^2)^{-1}}\
+\end{align}
+Now, we can write the posterior likelihood function for $\mu_i$ as follows:
+\begin{align}
+L(\mu_i; \mathbf{x})
+&=\prod_{i=1}^{n}
+\frac{1}{\sqrt{2\pi\sigma_i^2}}
+\exp\!\left\{-\frac{(x_i-\mu_i)^2}{2\sigma_i^2}\right\}
+\cdot
+\frac{1}{\sqrt{2\pi\tau^2}}
+\exp\!\left\{-\frac{(\mu_i-\mu_0)^2}{2\tau^2}\right\}\\
+\ell(\mu_i; \mathbf{x})
+&= -\frac{1}{2}\sum_{i=1}^{n}\Bigg[
+\log(2\pi\sigma_i^2)+\frac{(x_i-\mu_i)^2}{\sigma_i^2}
++\log(2\pi\tau^2)+\frac{(\mu_i-\mu_0)^2}{\tau^2}
+\Bigg]
+\end{align}
+First, we take the partial derivative w.r.t. $\mu_i$ to derive the posterior mean, substituting in the MLE estimators we derived above.
+\begin{align}
+    &\frac{\partial \ell(\mu_i; \mathbf{x})}{\partial \mu_i}
+= \frac{x_i-\mu_i}{\sigma_i^2}+\frac{\mu_0-\mu_i}{\tau^2}\\
+&\Rightarrow\ \mu_i\left(\frac{1}{\sigma_i^2}+\frac{1}{\hat{\tau}^2}\right)
+=\frac{x_i}{\sigma_i^2}+\frac{\hat{\mu_0}}{\hat{\tau}^2}
+\\&\Rightarrow
+\ \mu_i
+=\lambda_i x_i+(1-\lambda_i)\hat{\mu_0}, \quad 
+\lambda_i=\frac{\hat{\tau}^2}{\sigma_i^2+\hat{\tau}^2}
+\end{align}
+Second, we derive the MLE of the posterior variance by Fisher Information:
+\begin{align}
+\frac{\partial^2 \ell}{\partial \mu_i^2} 
+&= -\left( \frac{1}{\sigma_i^2} + \frac{1}{\tau^2} \right) \\[8pt]
+\Rightarrow\quad 
+\operatorname{Var}(\mu_i \mid x_i) 
+&= \left( -\frac{\partial^2 \ell}{\partial \mu_i^2} \right)^{-1} 
+= \left( \frac{1}{\sigma_i^2} + \frac{1}{\tau^2} \right)^{-1}
+\end{align}
+To conclude, we have:
+\begin{align}
+    \textrm{Prior: }&\mu_i \sim \mathcal{N}(\mu_0, \tau^2)\\
+    \textrm{Posterior: }& \mu_i \mid \mathbf{x} \sim \mathcal{N}\left(
+\lambda_i x_i+(1-\lambda_i)\hat{\mu_0},\;
+\Big(\frac{1}{\sigma_i^2}+\frac{1}{\hat{\tau}^2}\Big)^{-1}
+\right), \quad \lambda_i=\frac{\sigma_i^2}{\sigma_i^2+\hat{\tau}^2}.
+\end{align}
+\newpage
+\bibliographystyle{plain}
+\bibliography{bib}
+
+\end{document}
+
+%px1 x
+%pxp matrix of uncertainity for each person
+
+%everyone's x is 1x1 MAB code & consult with annie 
