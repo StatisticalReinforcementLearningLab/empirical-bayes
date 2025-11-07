@@ -4,6 +4,9 @@ import pandas as pd
 from scipy.optimize import minimize_scalar
 
 def empirical_bayes_sequential(csv_file, sigma2=5000):
+
+    # Quick fix for random csv file path issue 
+
     csv_path = Path(csv_file)
     if not csv_path.is_absolute():
         repo_root = Path(__file__).resolve().parents[1]
@@ -11,6 +14,8 @@ def empirical_bayes_sequential(csv_file, sigma2=5000):
 
     if not csv_path.exists():
         raise FileNotFoundError(f"CSV not found: {csv_path}")
+    
+    # Import csv as df
 
     df = pd.read_csv(csv_path)
     max_day = df['day'].max()
@@ -65,7 +70,8 @@ def empirical_bayes_sequential(csv_file, sigma2=5000):
     # Merge with original data
     merged = df.merge(results_df, on=['individual', 'day'], how='left')
     
-    # Save to repo root
+    # Save to correct folder in the project 
+    
     repo_root = Path(__file__).resolve().parents[1]
     out_path = repo_root / f"{csv_path.stem}_sequential_posterior.csv"
     merged.to_csv(out_path, index=False)
