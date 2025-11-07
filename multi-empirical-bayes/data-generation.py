@@ -29,4 +29,4 @@ for i in range(1, n + 1):
         })
 
 df = pd.DataFrame(data)
-df.to_csv('multi-empirical-bayes-all/generated-data.csv', index=False)
+df.to_csv('multi-empirical-bayes/generated-data.csv', index=False)

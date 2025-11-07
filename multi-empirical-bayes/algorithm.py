@@ -92,5 +92,5 @@ def empirical_bayes_sequential(csv_file, sigma2=5000):
     return merged
 
 # Run
-results = empirical_bayes_sequential('multi-empirical-bayes-all/generated-data.csv')
+results = empirical_bayes_sequential('multi-empirical-bayes/generated-data.csv')
 print(results.head(10))
