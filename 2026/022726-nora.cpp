@@ -139,7 +139,7 @@ inline double normal_cdf(double z) {
     return 0.5 * (1.0 + std::erf(z / std::sqrt(2.0)));
 }
 
-// Empirical Bayes learner (simplified, per-run)
+// Empirical Bayes learner (2-arm case)
 void empirical_bayes(int T, int n, int arms,
                     const Mat &theta, double sigma_r,
                     Vec mu0, Vec tau0,
@@ -148,22 +148,20 @@ void empirical_bayes(int T, int n, int arms,
     actions.assign(n, IVec(T));
     rewards.assign(n, Vec(T));
 
-    // per-person posterior means/vars
-    Mat m(n, Vec(arms));
-    Mat v(n, Vec(arms));
-    for (int i = 0; i < n; ++i) for (int a = 0; a < arms; ++a) {
-        m[i][a] = mu0[a];
-        v[i][a] = tau0[a]*tau0[a];
+    // per-person posterior means/vars (2 arms)
+    Mat m(n, Vec(2));
+    Mat v(n, Vec(2));
+    for (int i = 0; i < n; ++i) {
+        m[i][0] = mu0[0]; m[i][1] = mu0[1];
+        v[i][0] = tau0[0]*tau0[0]; v[i][1] = tau0[1]*tau0[1];
     }
-
-    IVec N(n*arms, 0); // not used heavily but keep for parity
 
     double sig2 = sigma_r*sigma_r;
 
     for (int t = 0; t < T; ++t) {
         // estimate hyperparams per arm (method-of-moments)
-        Vec mu_hat(arms, 0.0), tau2_hat(arms, 0.0);
-        for (int a = 0; a < arms; ++a) {
+        Vec mu_hat(2, 0.0), tau2_hat(2, 0.0);
+        for (int a = 0; a < 2; ++a) {
             // mean of m[:,a]
             double mean_m = 0.0;
             for (int i = 0; i < n; ++i) mean_m += m[i][a];
@@ -187,31 +185,22 @@ void empirical_bayes(int T, int n, int arms,
 
         // EB shrinkage and selection per participant
         for (int i = 0; i < n; ++i) {
-            Vec m_eb(arms);
-            Vec v_eb(arms);
-            for (int a = 0; a < arms; ++a) {
+            Vec m_eb(2);
+            Vec v_eb(2);
+            for (int a = 0; a < 2; ++a) {
                 double lam = (tau2_hat[a] > 0.0) ? (tau2_hat[a] / (tau2_hat[a] + v[i][a])) : 1.0;
                 m_eb[a] = lam * m[i][a] + (1.0 - lam) * mu_hat[a];
                 if (tau2_hat[a] > 0.0) v_eb[a] = (v[i][a] * tau2_hat[a]) / (v[i][a] + tau2_hat[a]);
                 else v_eb[a] = 0.0;
             }
 
-            int a_sel = 0;
-            if (arms == 2) {
-                double diff = m_eb[1] - m_eb[0];
-                double var_diff = v_eb[1] + v_eb[0];
-                double z = diff / std::sqrt(std::max(var_diff, 1e-20));
-                double p1 = normal_cdf(z);
-                std::uniform_real_distribution<double> ud(0.0, 1.0);
-                a_sel = (ud(rng) < p1) ? 1 : 0;
-            } else {
-                double best = -INFINITY;
-                for (int a = 0; a < arms; ++a) {
-                    std::normal_distribution<double> dist(m_eb[a], std::sqrt(std::max(v_eb[a], 0.0)));
-                    double s = dist(rng);
-                    if (s > best) { best = s; a_sel = a; }
-                }
-            }
+            // choose arm based on probability that arm 1 > arm 0
+            double diff = m_eb[1] - m_eb[0];
+            double var_diff = v_eb[1] + v_eb[0];
+            double z = diff / std::sqrt(std::max(var_diff, 1e-20));
+            double p1 = normal_cdf(z);
+            std::uniform_real_distribution<double> ud(0.0, 1.0);
+            int a_sel = (ud(rng) < p1) ? 1 : 0;
 
             std::normal_distribution<double> rd(theta[i][a_sel], sigma_r);
             double r = rd(rng);
@@ -230,81 +219,92 @@ void empirical_bayes(int T, int n, int arms,
 }
 
 int main(){
-    // Scenario parameters (you can change these)
-    std::vector<int> ns = {50};
-    std::vector<double> mus = {0.0, 3.0};
-    std::vector<double> taus = {0.5, 1.0, 5.0};
+    // Simulation parameters
     int T = 200;
-    Vec sigma_a = {5.0, 5.0};
-    int runs = 100; // match the user's example; increase if desired
-
+    
     // priors
     Vec mu0 = {0.0, 0.0};
-    Vec tau0 = {0.1, 0.1};
+    Vec tau0 = {1, 1};
 
     std::ofstream out("regret_scenarios.csv");
-    out << "n,mu2,tau,t,mean_unpooled,se_unpooled,mean_pooled,se_pooled,mean_eb,se_eb\n";
+    out << "n,mu2,tau,sigma,t,mean_unpooled,se_unpooled,mean_pooled,se_pooled,mean_eb,se_eb\n";
 
-    for (int n : ns) {
-        for (double mu2 : mus) {
-            for (double tau : taus) {
-                // accumulators: sum and sumsq per algorithm per time
-                Vec sum_unp(T, 0.0), sumsq_unp(T, 0.0);
-                Vec sum_pool(T, 0.0), sumsq_pool(T, 0.0);
-                Vec sum_eb(T, 0.0), sumsq_eb(T, 0.0);
+    // All scenarios
+    struct Scenario { int n; double mu2; double tau; double sigma; int runs; };
+    std::vector<Scenario> scenarios = {
+        {50, 0, 0.1, 0.1, 500},
+        {50, 0, 0.5, 0.1, 500},   
+        {50, 0, 2, 0.1, 500}, 
+        {50, 0, 5, 0.1, 500},
+        {50, 0, 10, 0.1, 500},
+        {50, 1, 0.1, 0.1, 500},
+        {50, 1, 0.5, 0.1, 500},   
+        {50, 1, 2, 0.1, 500}, 
+        {50, 1, 5, 0.1, 500},
+        {50, 1, 10, 1, 500} 
+    };
 
-                for (int r = 0; r < runs; ++r) {
-                    std::mt19937_64 rng(r + 1000);
-                    Vec mu_a = {0.0, mu2};
-                    Vec tau_a = {tau, tau};
-                    Mat theta = set_environment(n, 2, mu_a, tau_a, rng);
+    for (const auto &sc : scenarios) {
+        int n_ex = sc.n;
+        double mu2_ex = sc.mu2;
+        double tau_ex = sc.tau;
+        Vec sigma_a_ex = {sc.sigma, sc.sigma};
+        int runs_ex = sc.runs;
 
-                    IMat acts_unp, acts_pool, acts_eb;
-                    Mat rews_unp, rews_pool, rews_eb;
+        Vec sum_unp2(T, 0.0), sumsq_unp2(T, 0.0);
+        Vec sum_pool2(T, 0.0), sumsq_pool2(T, 0.0);
+        Vec sum_eb2(T, 0.0), sumsq_eb2(T, 0.0);
 
-                    thompson_sampling(T, n, 2, theta, sigma_a[0], mu0, tau0, acts_unp, rews_unp, rng);
-                    pooled_thompson_sampling(T, n, 2, theta, sigma_a[0], mu0, tau0, acts_pool, rews_pool, rng);
-                    empirical_bayes(T, n, 2, theta, sigma_a[0], mu0, tau0, acts_eb, rews_eb, rng);
+        for (int r = 0; r < runs_ex; ++r) {
+            std::mt19937_64 rng(r + 5000 + static_cast<int>(mu2_ex*100));
+            Vec mu_a = {0.0, mu2_ex};
+            Vec tau_a = {tau_ex, tau_ex};
+            Mat theta = set_environment(n_ex, 2, mu_a, tau_a, rng);
 
-                    Vec reg_unp = cumulative_regret(theta, acts_unp);
-                    Vec reg_pool = cumulative_regret(theta, acts_pool);
-                    Vec reg_ebb = cumulative_regret(theta, acts_eb);
+            IMat acts_unp, acts_pool, acts_eb;
+            Mat rews_unp, rews_pool, rews_eb;
 
-                    for (int t = 0; t < T; ++t) {
-                        sum_unp[t] += reg_unp[t];
-                        sumsq_unp[t] += reg_unp[t]*reg_unp[t];
-                        sum_pool[t] += reg_pool[t];
-                        sumsq_pool[t] += reg_pool[t]*reg_pool[t];
-                        sum_eb[t] += reg_ebb[t];
-                        sumsq_eb[t] += reg_ebb[t]*reg_ebb[t];
-                    }
-                }
+            thompson_sampling(T, n_ex, 2, theta, sigma_a_ex[0], mu0, tau0, acts_unp, rews_unp, rng);
+            pooled_thompson_sampling(T, n_ex, 2, theta, sigma_a_ex[0], mu0, tau0, acts_pool, rews_pool, rng);
+            empirical_bayes(T, n_ex, 2, theta, sigma_a_ex[0], mu0, tau0, acts_eb, rews_eb, rng);
 
-                // write means and standard errors
-                for (int t = 0; t < T; ++t) {
-                    double mean_unp = sum_unp[t] / runs;
-                    double mean_pool = sum_pool[t] / runs;
-                    double mean_ebv = sum_eb[t] / runs;
+            Vec reg_unp = cumulative_regret(theta, acts_unp);
+            Vec reg_pool = cumulative_regret(theta, acts_pool);
+            Vec reg_ebb = cumulative_regret(theta, acts_eb);
 
-                    double var_unp = (runs>1) ? (sumsq_unp[t] - runs * mean_unp * mean_unp) / (runs - 1) : 0.0;
-                    double var_pool = (runs>1) ? (sumsq_pool[t] - runs * mean_pool * mean_pool) / (runs - 1) : 0.0;
-                    double var_ebv = (runs>1) ? (sumsq_eb[t] - runs * mean_ebv * mean_ebv) / (runs - 1) : 0.0;
-
-                    double se_unp = std::sqrt(std::max(0.0, var_unp)) / std::sqrt(runs);
-                    double se_pool = std::sqrt(std::max(0.0, var_pool)) / std::sqrt(runs);
-                    double se_eb = std::sqrt(std::max(0.0, var_ebv)) / std::sqrt(runs);
-
-                    out << n << ',' << mu2 << ',' << tau << ',' << t << ','
-                        << std::setprecision(8) << mean_unp << ',' << se_unp << ','
-                        << mean_pool << ',' << se_pool << ','
-                        << mean_ebv << ',' << se_eb << '\n';
-                }
-                std::cout << "Wrote scenario n="<<n<<" mu2="<<mu2<<" tau="<<tau<<"\n";
+            for (int t = 0; t < T; ++t) {
+                sum_unp2[t] += reg_unp[t];
+                sumsq_unp2[t] += reg_unp[t]*reg_unp[t];
+                sum_pool2[t] += reg_pool[t];
+                sumsq_pool2[t] += reg_pool[t]*reg_pool[t];
+                sum_eb2[t] += reg_ebb[t];
+                sumsq_eb2[t] += reg_ebb[t]*reg_ebb[t];
             }
         }
+
+        // calculates means and SE for each scenario
+        for (int t = 0; t < T; ++t) {
+            double mean_unp = sum_unp2[t] / runs_ex;
+            double mean_pool = sum_pool2[t] / runs_ex;
+            double mean_ebv = sum_eb2[t] / runs_ex;
+
+            double var_unp = (runs_ex>1) ? (sumsq_unp2[t] - runs_ex * mean_unp * mean_unp) / (runs_ex - 1) : 0.0;
+            double var_pool = (runs_ex>1) ? (sumsq_pool2[t] - runs_ex * mean_pool * mean_pool) / (runs_ex - 1) : 0.0;
+            double var_ebv = (runs_ex>1) ? (sumsq_eb2[t] - runs_ex * mean_ebv * mean_ebv) / (runs_ex - 1) : 0.0;
+
+            double se_unp = std::sqrt(std::max(0.0, var_unp)) / std::sqrt(runs_ex);
+            double se_pool = std::sqrt(std::max(0.0, var_pool)) / std::sqrt(runs_ex);
+            double se_eb = std::sqrt(std::max(0.0, var_ebv)) / std::sqrt(runs_ex);
+
+            out << n_ex << ',' << mu2_ex << ',' << tau_ex << ',' << sigma_a_ex[0] << ',' << t << ','
+                << std::setprecision(8) << mean_unp << ',' << se_unp << ','
+                << mean_pool << ',' << se_pool << ','
+                << mean_ebv << ',' << se_eb << '\n';
+        }
+        std::cout << "Wrote scenario\n";
     }
 
     out.close();
-    std::cout << "Wrote regret_scenarios.csv (" << runs << " runs per scenario)\n";
+    std::cout << "Wrote regret_scenarios.csv\n";
     return 0;
 }
