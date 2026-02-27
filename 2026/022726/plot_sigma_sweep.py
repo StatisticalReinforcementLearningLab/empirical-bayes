@@ -53,7 +53,7 @@ def main():
     ax.set_facecolor('#f4f4f4')
     
     # Labels and title
-    ax.set_xlabel(r'Within-person noise ($\sigma$)', fontsize=12)
+    ax.set_xlabel(r'Noise-to-heterogeneity ($\sigma/\tau$) ratio', fontsize=12)
     ax.set_ylabel('Final cumulative regret', fontsize=12)
     ax.set_title(r'Algorithm Performance vs. Noise ($\mu_2=1$, $\tau=1$, $T=100$, $n=50$)', 
                  fontsize=13, pad=15)
