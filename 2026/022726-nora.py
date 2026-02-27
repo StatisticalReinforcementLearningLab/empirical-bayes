@@ -7,6 +7,8 @@
 import numpy as np
 import math 
 import matplotlib.pyplot as plt
+from scipy import special
+from joblib import Parallel, delayed
 
 # ### True Underlying Environment
 
@@ -67,211 +69,170 @@ def pooled_epsilon_greedy(times, participants, n_arms, theta, sigma_arm, rng, ep
 # In[4]:
 
 
+# helpers moved to top level so they’re defined once
+def normal_cdf(z):
+    # accept scalars or arrays; use scipy.special.erf for vectorised operation
+    z = np.asarray(z, dtype=float)
+    return 0.5 * (1.0 + special.erf(z / np.sqrt(2.0)))
+
+def profile_ll_and_mu(x, s2, tau2):
+    w = 1.0 / (s2 + tau2)
+    mu = np.sum(w * x) / np.sum(w)
+    ll = -0.5 * np.sum(np.log(s2 + tau2) + (x - mu) ** 2 * w)
+    return ll, mu
+
+def fit_mu_tau2(x, s2, grid=None):
+    x = np.asarray(x, float)
+    s2 = np.asarray(s2, float)
+    if grid is None:
+        base = float(np.var(x)) + float(np.mean(s2))
+        hi = max(1e-6, 10.0 * base)
+        grid = np.logspace(-8, np.log10(hi), 120)
+
+    best_tau2 = 0.0
+    best_ll, best_mu = profile_ll_and_mu(x, s2, 0.0)
+    for tau2 in grid:
+        ll, mu = profile_ll_and_mu(x, s2, tau2)
+        if ll > best_ll:
+            best_ll, best_mu, best_tau2 = ll, mu, tau2
+    return best_mu, best_tau2
+
+# vectorised un‑pooled Thompson
 def thompson_sampling(times, participants, n_arms, theta, sigma_r, rng, mu0, tau0):
-    sigma_r = np.asarray(sigma_r, dtype=float)  # allow scalar or per-arm SD
-    mu0  = np.asarray(mu0, dtype=float)         # MUST be length n_arms
-    tau0 = np.asarray(tau0, dtype=float)        # MUST be length n_arms (SD)
+    sigma_r = np.asarray(sigma_r, float)
+    mu0  = np.asarray(mu0, float)
+    tau0 = np.asarray(tau0, float)
 
-    # number of times person i tried arm a
-    N = np.zeros((participants, n_arms), dtype=int)
+    N = np.zeros((participants, n_arms), int)
+    S = np.zeros((participants, n_arms), float)
+    actions = np.empty((participants, times), int)
+    rewards = np.empty((participants, times), float)
 
-    # sum of rewards for specific arm
-    S = np.zeros((participants, n_arms), dtype=float)
+    sig2_arr = (float(sigma_r) ** 2
+                if sigma_r.size == 1 else sigma_r.astype(float) ** 2)
 
-    actions = np.full((participants, times), -1, dtype=int)
-    rewards = np.zeros((participants, times), dtype=float)
-
-    for t in range(times):
-        for i in range(participants):
-            post_mean = np.zeros(n_arms, dtype=float)
-            post_var  = np.ones(n_arms, dtype=float)
-
-            for a in range(n_arms):
-                mu0_a  = float(mu0[a])
-                tau0_a = float(tau0[a])
-
-                if N[i, a] == 0:
-                    # No data yet. posterior = prior
-                    post_mean[a] = mu0_a
-                    post_var[a]  = tau0_a**2
-                else:
-                    # have data so do normal-normal conjugacy to update
-                    sig2 = float(sigma_r)**2 if sigma_r.size == 1 else float(sigma_r[a])**2
-
-                    precision_data  = N[i, a] / sig2
-                    precision_prior = 1.0 / (tau0_a**2)
-
-                    post_var[a]  = 1.0 / (precision_data + precision_prior)
-                    post_mean[a] = post_var[a] * (mu0_a/(tau0_a**2) + S[i, a]/sig2)
-
-            # Thompson step: sample a plausible true mean for each arm
-            sampled = rng.normal(loc=post_mean, scale=np.sqrt(post_var))
-
-            # choose arm that is best
-            a_star = int(np.argmax(sampled))
-
-            # reward for this participant on chosen arm
-            sig = float(sigma_r) if sigma_r.size == 1 else float(sigma_r[a_star])
-            r = rng.normal(loc=theta[i, a_star], scale=sig)
-
-            actions[i, t] = a_star
-            rewards[i, t] = r
-
-            N[i, a_star] += 1
-            S[i, a_star] += r
-
-    return N, S, actions, rewards
-
-# #### Thompson Sampling (Pooled) — Betina
-
-# In[5]:
-
-
-def pooled_thompson_sampling(times, participants, n_arms, theta, sigma_r, rng, mu0, tau0):
-    sigma_r = np.asarray(sigma_r, dtype=float)  # allow scalar or per-arm SD
-    mu0  = np.asarray(mu0, dtype=float)         # MUST be length n_arms
-    tau0 = np.asarray(tau0, dtype=float)        # MUST be length n_arms (SD)
-
-    N = np.zeros(n_arms, dtype=int)     # POOLED per arm
-    S = np.zeros(n_arms, dtype=float)   # pooled sum of rewards per arm
-
-    actions = np.full((participants, times), -1, dtype=int)
-    rewards = np.zeros((participants, times), dtype=float)
+    prec_prior = 1.0 / (tau0 ** 2)
 
     for t in range(times):
-        post_mean = np.zeros(n_arms, dtype=float)
-        post_var  = np.ones(n_arms, dtype=float)
+        # posterior parameters for every (i,a) in one shot
+        precision_data = N / sig2_arr
+        post_var = 1.0 / (precision_data + prec_prior)            # (p, a)
+        post_mean = post_var * (mu0 / (tau0 ** 2) + S / sig2_arr)  # broadcasting
 
-        for a in range(n_arms):
-            mu0_a  = float(mu0[a])
-            tau0_a = float(tau0[a])
+        # replace rows with priors where N == 0
+        mask = (N == 0)
+        # np.where handles broadcasting correctly
+        post_mean = np.where(mask, mu0[np.newaxis, :], post_mean)
+        post_var  = np.where(mask, (tau0 ** 2)[np.newaxis, :], post_var)
 
-            if N[a] == 0:
-                # No data yet. posterior = prior
-                post_mean[a] = mu0_a
-                post_var[a]  = tau0_a**2
-            else:
-                sig2 = float(sigma_r)**2 if sigma_r.size == 1 else float(sigma_r[a])**2
-
-                precision_data  = N[a] / sig2
-                precision_prior = 1.0 / (tau0_a**2)
-
-                post_var[a]  = 1.0 / (precision_data + precision_prior)
-                post_mean[a] = post_var[a] * (mu0_a/(tau0_a**2) + S[a]/sig2)
-
-        # Thompson step: sample a plausible true mean for each arm
         sampled = rng.normal(loc=post_mean, scale=np.sqrt(post_var))
+        a_star = np.argmax(sampled, axis=1)                      # (participants,)
 
-        # choose arm that is best
-        a_star = int(np.argmax(sampled))
-
-        sig = float(sigma_r) if sigma_r.size == 1 else float(sigma_r[a_star])
-        r = rng.normal(loc=theta[:, a_star], scale=sig, size=participants)
+        # draw rewards for all agents in one go
+        locs = theta[np.arange(participants), a_star]
+        sigs = (float(sigma_r) if sigma_r.size == 1
+                else sigma_r[a_star])
+        r = rng.normal(loc=locs, scale=sigs)
 
         actions[:, t] = a_star
         rewards[:, t] = r
+        N[np.arange(participants), a_star] += 1
+        S[np.arange(participants), a_star] += r
 
+    return N, S, actions, rewards
+
+# pooled Thompson already vectorised w.r.t. participants, but we can
+# eliminate the per‑arm for‑loop
+def pooled_thompson_sampling(times, participants, n_arms, theta, sigma_r, rng, mu0, tau0):
+    sigma_r = np.asarray(sigma_r, float)
+    mu0  = np.asarray(mu0, float)
+    tau0 = np.asarray(tau0, float)
+
+    N = np.zeros(n_arms, int)
+    S = np.zeros(n_arms, float)
+    actions = np.empty((participants, times), int)
+    rewards = np.empty((participants, times), float)
+
+    sig2_arr = (float(sigma_r) ** 2
+                if sigma_r.size == 1 else sigma_r ** 2)
+    prec_prior = 1.0 / (tau0 ** 2)
+
+    for t in range(times):
+        precision_data = N / sig2_arr
+        post_var = 1.0 / (precision_data + prec_prior)
+        post_mean = post_var * (mu0 / (tau0 ** 2) + S / sig2_arr)
+
+        sampled = rng.normal(loc=post_mean, scale=np.sqrt(post_var))
+        a_star = int(np.argmax(sampled))
+
+        r = rng.normal(loc=theta[:, a_star],
+                       scale=(float(sigma_r) if sigma_r.size == 1
+                              else sigma_r[a_star]),
+                       size=participants)
+
+        actions[:, t] = a_star
+        rewards[:, t] = r
         N[a_star] += participants
         S[a_star] += r.sum()
 
     return N, S, actions, rewards
 
-# #### Empirical Bayes — Nora
+# empirical‑Bayes learner with helpers factored out
+def learning_empirical_bayes(times, participants, n_arms, theta,
+                             sigma_arm, rng, mu0, tau0,
+                             grid=None):
+    sigma_arm = np.asarray(sigma_arm, float)
+    mu0  = np.asarray(mu0, float)
+    tau0 = np.asarray(tau0, float)
 
-# Empirical Bayes
-# 1. Simple Bayesian learning algorithm
-# 2. Empirical Bayes decision-making
+    m = np.broadcast_to(mu0, (participants, n_arms)).copy()
+    v = np.broadcast_to(tau0**2, (participants, n_arms)).copy()
 
-# In[6]:
-
-
-def learning_empirical_bayes(times, participants, n_arms, theta, sigma_arm, rng, mu0, tau0):
-    sigma_arm = np.asarray(sigma_arm, dtype=float)  # allow scalar or per-arm SD
-    mu0  = np.asarray(mu0, dtype=float)             # MUST be length n_arms
-    tau0 = np.asarray(tau0, dtype=float)            # MUST be length n_arms (SD)
-
-    # these are our priors (vector priors)
-    m = np.tile(mu0, (participants, 1))
-    v = np.tile(tau0**2, (participants, 1))
-
-    N = np.zeros((participants, n_arms), dtype=int)
-    actions = np.zeros((participants, times), dtype=int)
-    rewards = np.zeros((participants, times), dtype=float)
-
-    def normal_cdf(z):
-        return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
-
-    def profile_ll_and_mu(x, s2, tau2):
-        w = 1.0 / (s2 + tau2)
-        mu = np.sum(w * x) / np.sum(w)
-        ll = -0.5 * np.sum(np.log(s2 + tau2) + (x - mu) ** 2 * w)
-        return ll, mu
-
-    def fit_mu_tau2(x, s2):
-        x = np.asarray(x, dtype=float)
-        s2 = np.asarray(s2, dtype=float)
-
-        base = float(np.var(x)) + float(np.mean(s2))
-        hi = max(1e-6, 10.0 * base)
-        grid = np.logspace(-8, np.log10(hi), 120)
-
-        best_tau2 = 0.0
-        best_ll, best_mu = profile_ll_and_mu(x, s2, 0.0)
-
-        for tau2 in grid:
-            ll, mu = profile_ll_and_mu(x, s2, float(tau2))
-            if ll > best_ll:
-                best_ll, best_mu, best_tau2 = ll, mu, float(tau2)
-
-        return best_mu, best_tau2
+    N = np.zeros((participants, n_arms), int)
+    actions = np.empty((participants, times), int)
+    rewards = np.empty((participants, times), float)
 
     for t in range(times):
-        mu_hat = np.zeros(n_arms, dtype=float)
-        tau2_hat = np.zeros(n_arms, dtype=float)
-
+        mu_hat = np.empty(n_arms)
+        tau2_hat = np.empty(n_arms)
         for a in range(n_arms):
-            mu_hat[a], tau2_hat[a] = fit_mu_tau2(m[:, a], v[:, a])
+            mu_hat[a], tau2_hat[a] = fit_mu_tau2(m[:, a], v[:, a], grid)
 
-        m_eb = np.zeros_like(m, dtype=float)
-        v_eb = np.zeros_like(v, dtype=float)
+        # EB shrinkage for all participants/arms at once
+        lam = np.where(tau2_hat > 0,
+                       tau2_hat / (tau2_hat + v),
+                       1.0)
+        m_eb = lam * m + (1.0 - lam) * mu_hat
+        # rewrite as v*tau2 / (v + tau2) to avoid dividing by small tau2_hat
+        v_eb = np.where(tau2_hat > 0,
+                        (v * tau2_hat) / (v + tau2_hat),
+                        0.0)
 
-        for a in range(n_arms):
-            if tau2_hat[a] <= 0.0:
-                m_eb[:, a] = mu_hat[a]
-                v_eb[:, a] = 0.0
-            else:
-                lam = tau2_hat[a] / (tau2_hat[a] + v[:, a])
-                m_eb[:, a] = lam * m[:, a] + (1.0 - lam) * mu_hat[a]
-                v_eb[:, a] = 1.0 / (1.0 / v[:, a] + 1.0 / tau2_hat[a])
+        if n_arms == 2:
+            diff = m_eb[:, 1] - m_eb[:, 0]
+            var_diff = v_eb[:, 1] + v_eb[:, 0]
+            p1 = normal_cdf(diff / np.sqrt(np.maximum(var_diff, 1e-20)))
+            a_sel = (rng.random(participants) < p1).astype(int)
+        else:
+            sample = rng.normal(loc=m_eb, scale=np.sqrt(np.maximum(v_eb, 0.0)))
+            a_sel = np.argmax(sample, axis=1)
 
-        for i in range(participants):
-            if n_arms == 2:
-                m_diff = m_eb[i, 1] - m_eb[i, 0]
-                v_diff = v_eb[i, 1] + v_eb[i, 0]
-                if v_diff <= 0.0:
-                    a = 1 if m_diff > 0.0 else 0
-                else:
-                    p1 = normal_cdf(m_diff / math.sqrt(v_diff))
-                    a = 1 if rng.random() < p1 else 0
-            else:
-                sample = rng.normal(loc=m_eb[i], scale=np.sqrt(np.maximum(v_eb[i], 0.0)))
-                a = int(np.argmax(sample))
+        locs = theta[np.arange(participants), a_sel]
+        sigs = sigma_arm[a_sel]
+        r = rng.normal(loc=locs, scale=sigs)
 
-            # reward
-            r = rng.normal(loc=theta[i, a], scale=sigma_arm[a])
+        actions[:, t] = a_sel
+        rewards[:, t] = r
+        N[np.arange(participants), a_sel] += 1
 
-            actions[i, t] = a
-            rewards[i, t] = r
-            N[i, a] += 1
+        sig2 = sigma_arm[a_sel] ** 2
+        prec = 1.0 / v[np.arange(participants), a_sel] + 1.0 / sig2
+        v_new = 1.0 / prec
+        m_new = v_new * (m[np.arange(participants), a_sel] / v[np.arange(participants), a_sel]
+                         + r / sig2)
 
-            # update per-person posterior for chosen arm
-            sig2 = float(sigma_arm[a]) ** 2
-            prec = 1.0 / v[i, a] + 1.0 / sig2
-            v_new = 1.0 / prec
-            m_new = v_new * (m[i, a] / v[i, a] + r / sig2)
-
-            m[i, a] = m_new
-            v[i, a] = v_new
+        m[np.arange(participants), a_sel] = m_new
+        v[np.arange(participants), a_sel] = v_new
 
     return m, v, N, actions, rewards
 
@@ -391,13 +352,10 @@ def plot(ns, mus, taus, T, sigma_a, n_runs=50, env_seed=0, eps=0.1,
                 else:
                     tau0_use = np.asarray(tau0, dtype=float)
 
-                reg_pe_list  = []
-                reg_ts_list  = []
-                reg_pts_list = []
-                reg_eb_list  = []
-
-                for r in range(n_runs):
-                    out = evaluate(
+                # run the simulations in parallel across seeds; each job
+                # returns a dictionary exactly like evaluate() normally does.
+                results = Parallel(n_jobs=-1)(
+                    delayed(evaluate)(
                         theta=theta,
                         sigma_a=sigma_env,
                         T=T,
@@ -406,10 +364,14 @@ def plot(ns, mus, taus, T, sigma_a, n_runs=50, env_seed=0, eps=0.1,
                         tau0=tau0_use,
                         seed=r
                     )
-                    reg_pe_list.append(out["regret_pooled_eps"])           # (n, T)
-                    reg_ts_list.append(out["regret_thompson"])             # (n, T)
-                    reg_pts_list.append(out["regret_pooled_thompson"])     # (n, T)
-                    reg_eb_list.append(out["regret_eb"])                   # (n, T)
+                    for r in range(n_runs)
+                )
+
+                # unpack regrets from each run
+                reg_pe_list  = [out["regret_pooled_eps"] for out in results]
+                reg_ts_list  = [out["regret_thompson"] for out in results]
+                reg_pts_list = [out["regret_pooled_thompson"] for out in results]
+                reg_eb_list  = [out["regret_eb"] for out in results]
 
                 # ---- Calculate per-run means (averaged across participants) ----
                 # Each entry is (n, T); take mean over participants -> (n_runs, T)
@@ -489,7 +451,9 @@ def plot(ns, mus, taus, T, sigma_a, n_runs=50, env_seed=0, eps=0.1,
 
         fig.suptitle(main_title, fontsize=11)
         fig.tight_layout(rect=[0, 0, 0.95, 0.95])
-        plt.show()
+        # Non-blocking display; matplotlib will render inline
+        display(fig)
+        plt.close(fig)  # free memory
 
 # #### Trials - Varying Mean
 
@@ -514,20 +478,3 @@ plot(
 # - **Thompson** = soft orange
 # - **Pooled Thompson** = soft purple
 # - **EB** = light green
-
-# In[ ]:
-
-
-plot2(
-    ns=[50],
-    taus=[0.2, 1.0, 3.0],
-    sigmas=[0.5, 1.0, 3.0],   # within-person SD levels to compare
-    T=200,
-    mu_env=(0.0, 0.5),        # fixed means, no more mu grid
-    n_runs=10,
-    env_seed=0,
-    eps=0.1,
-    mu0=[0.0, 0.5],
-    tau0=[0.5, 0.5],
-    note="Varying within-person variance (σ); fixed means"
-)
