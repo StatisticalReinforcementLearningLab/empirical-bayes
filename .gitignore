@@ -1,6 +1,7 @@
 .venv/
 .DS_Store
 *.pyc
-__pycache__/.ipynb_checkpoints/
-2026/.ipynb_checkpoints/
+__pycache__/
+.ipynb_checkpoints/
+tstex_modules/
 2026/Empirical_Bayes__Final_Write_Up_12092025.pdf
