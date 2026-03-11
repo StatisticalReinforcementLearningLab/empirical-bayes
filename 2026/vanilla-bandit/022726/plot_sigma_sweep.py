@@ -25,7 +25,7 @@ def main():
     
     # Create figure
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
-    fig.patch.set_facecolor('#f4f4f4')  # Set entire figure background
+    fig.patch.set_facecolor("#ffffff")  # Set entire figure background
     
     # Plot each algorithm with 95% CI bands
     ax.plot(df.sigma, df.mean_unpooled, label='Unpooled TS', 
@@ -50,7 +50,7 @@ def main():
                     color=colors['eb'], alpha=0.15)
     
     # Set background color
-    ax.set_facecolor('#f4f4f4')
+    ax.set_facecolor("#ffffff")
     
     # Labels and title
     ax.set_xlabel(r'Noise-to-heterogeneity ($\sigma/\tau$) ratio', fontsize=12)
@@ -63,7 +63,7 @@ def main():
     
     # Legend
     ax.legend(loc='best', frameon=True, fancybox=True, shadow=False,
-              framealpha=1.0, facecolor='#f5f5f5', edgecolor='#cccccc')
+              framealpha=1.0, facecolor="#ffffff", edgecolor='#cccccc')
     
     # Find ranges where each algorithm performs best
     winners = df['winner'].values
