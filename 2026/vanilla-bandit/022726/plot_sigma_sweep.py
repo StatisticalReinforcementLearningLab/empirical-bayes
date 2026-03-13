@@ -4,7 +4,7 @@ import os
 
 def main():
     # Enable LaTeX rendering for consistent math fonts
-    plt.rcParams['text.usetex'] = True
+    # plt.rcParams['text.usetex'] = True
     plt.rcParams['font.family'] = 'serif'
     plt.rcParams['font.size'] = 10
     plt.rcParams['axes.labelsize'] = 11
@@ -21,7 +21,7 @@ def main():
     }
     
     # Read the sigma sweep results
-    df = pd.read_csv("sigma_sweep_results.csv")
+    df = pd.read_csv("different_means.csv")
     
     # Create figure
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
@@ -62,7 +62,7 @@ def main():
     ax.grid(True, alpha=0.3, linestyle='--', linewidth=0.5)
     
     # Legend
-    ax.legend(loc='best', frameon=True, fancybox=True, shadow=False,
+    ax.legend(loc='lower right', frameon=True, fancybox=True, shadow=False,
               framealpha=1.0, facecolor="#ffffff", edgecolor='#cccccc')
     
     # Find ranges where each algorithm performs best
@@ -102,7 +102,7 @@ def main():
                 bbox=dict(boxstyle='round', facecolor='#f5f5f5', alpha=1.0, edgecolor='#cccccc'))
     
     # Add priors and runs at bottom
-    fig.text(0.5, 0.065, r"Priors: $\mu_0 = [0, 0]$, $\tau_0 = [1, 1]$", 
+    fig.text(0.5, 0.065, r"Priors: $\mu_0 = [0, 5]$, $\tau_0 = [1, 1]$", 
              fontsize=10, va='bottom', ha='center')
     fig.text(0.5, 0.04, r"Runs: 500 per $\sigma$ value", 
              fontsize=10, va='bottom', ha='center')
@@ -117,8 +117,8 @@ def main():
     
     # Save figure
     os.makedirs('plots', exist_ok=True)
-    plt.savefig("plots/sigma_sweep.png", dpi=150, bbox_inches='tight')
-    print("Saved plot to plots/sigma_sweep.png")
+    plt.savefig("plots/different_means_legend_shift.png", dpi=150, bbox_inches='tight')
+    print("Saved plot to plots/different_means_legend_shift.png")
     
     # Print summary statistics
     print("\n=== Summary ===")

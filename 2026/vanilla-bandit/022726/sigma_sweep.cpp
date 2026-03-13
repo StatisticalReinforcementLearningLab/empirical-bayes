@@ -194,7 +194,7 @@ int main(){
     int runs = 500;
     
     Vec mu0 = {0.0, 0.0};
-    Vec tau0 = {1.0, 1.0};
+    Vec tau0 = {1.0, 5.0};
     
     // Build custom sigma values: 0.01-0.1 by 0.01, 0.1-1 by 0.1, 1-10 by 0.5
     Vec sigma_values;
@@ -216,7 +216,7 @@ int main(){
     
     int n_sigma = sigma_values.size();
     
-    std::ofstream out("sigma_sweep_results.csv");
+    std::ofstream out("different_taus.csv");
     out << "sigma,mean_unpooled,se_unpooled,mean_pooled,se_pooled,mean_eb,se_eb,winner\n";
     
     std::cout << "Sweeping " << n_sigma << " sigma values from " << sigma_values[0] 
@@ -280,7 +280,7 @@ int main(){
     }
     
     out.close();
-    std::cout << "\nDone! Results written to sigma_sweep_results.csv\n";
+    std::cout << "\nDone! Results written to different_taus.csv\n";
     std::cout << "Summary: Check which algorithm wins in different noise regimes.\n";
     
     return 0;
