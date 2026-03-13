@@ -21,7 +21,7 @@ def main():
     }
     
     # Read the sigma sweep results
-    df = pd.read_csv("different_means.csv")
+    df = pd.read_csv("no_difference_arms.csv")
     
     # Create figure
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
@@ -55,7 +55,7 @@ def main():
     # Labels and title
     ax.set_xlabel(r'Noise-to-heterogeneity ($\sigma/\tau$) ratio', fontsize=12)
     ax.set_ylabel('Final cumulative regret', fontsize=12)
-    ax.set_title(r'Algorithm Performance vs. Noise ($\mu_2=1$, $\tau=1$, $T=100$, $n=50$)', 
+    ax.set_title(r'Algorithm Performance vs. Noise ($\mu_2=0$, $\tau=1$, $T=100$, $n=50$)', 
                  fontsize=13, pad=15)
     
     # Add grid for readability
@@ -102,7 +102,7 @@ def main():
                 bbox=dict(boxstyle='round', facecolor='#f5f5f5', alpha=1.0, edgecolor='#cccccc'))
     
     # Add priors and runs at bottom
-    fig.text(0.5, 0.065, r"Priors: $\mu_0 = [0, 5]$, $\tau_0 = [1, 1]$", 
+    fig.text(0.5, 0.065, r"Priors: $\mu_0 = [0, 0]$, $\tau_0 = [1, 1]$", 
              fontsize=10, va='bottom', ha='center')
     fig.text(0.5, 0.04, r"Runs: 500 per $\sigma$ value", 
              fontsize=10, va='bottom', ha='center')
@@ -117,8 +117,8 @@ def main():
     
     # Save figure
     os.makedirs('plots', exist_ok=True)
-    plt.savefig("plots/different_means_legend_shift.png", dpi=150, bbox_inches='tight')
-    print("Saved plot to plots/different_means_legend_shift.png")
+    plt.savefig("plots/no_difference_arms.png", dpi=150, bbox_inches='tight')
+    print("Saved plot to plots/no_difference_arms.png")
     
     # Print summary statistics
     print("\n=== Summary ===")
