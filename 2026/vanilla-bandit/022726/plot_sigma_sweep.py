@@ -21,7 +21,7 @@ def main():
     }
     
     # Read the sigma sweep results
-    df = pd.read_csv("no_difference_arms.csv")
+    df = pd.read_csv("no_heterogeneity_xaxis.csv")
     
     # Create figure
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
@@ -53,9 +53,9 @@ def main():
     ax.set_facecolor("#ffffff")
     
     # Labels and title
-    ax.set_xlabel(r'Noise-to-heterogeneity ($\sigma/\tau$) ratio', fontsize=12)
+    ax.set_xlabel(r'$\sigma$', fontsize=12)
     ax.set_ylabel('Final cumulative regret', fontsize=12)
-    ax.set_title(r'Algorithm Performance vs. Noise ($\mu_2=0$, $\tau=1$, $T=100$, $n=50$)', 
+    ax.set_title(r'Algorithm Performance vs. Noise ($\mu_2=1$, $\tau=0$, $T=100$, $n=50$)', 
                  fontsize=13, pad=15)
     
     # Add grid for readability
@@ -117,8 +117,8 @@ def main():
     
     # Save figure
     os.makedirs('plots', exist_ok=True)
-    plt.savefig("plots/no_difference_arms.png", dpi=150, bbox_inches='tight')
-    print("Saved plot to plots/no_difference_arms.png")
+    plt.savefig("plots/no_heterogeneity_xaxis.png", dpi=150, bbox_inches='tight')
+    print("Saved plot to plots/no_heterogeneity_xaxis.png")
     
     # Print summary statistics
     print("\n=== Summary ===")

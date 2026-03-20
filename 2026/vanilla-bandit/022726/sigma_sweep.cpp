@@ -189,7 +189,7 @@ int main(){
     // Fixed parameters
     int n = 50;
     int T = 100;
-    double mu2 = 0.0;  // true difference
+    double mu2 = 1.0;  // true difference
     double tau = 1.0;  // between-person heterogeneity (fixed)
     int runs = 500;
     
@@ -216,7 +216,7 @@ int main(){
     
     int n_sigma = sigma_values.size();
     
-    std::ofstream out("no_difference_arms.csv");
+    std::ofstream out("no_heterogeneity_xaxis.csv");
     out << "sigma,mean_unpooled,se_unpooled,mean_pooled,se_pooled,mean_eb,se_eb,winner\n";
     
     std::cout << "Sweeping " << n_sigma << " sigma values from " << sigma_values[0] 
@@ -280,7 +280,7 @@ int main(){
     }
     
     out.close();
-    std::cout << "\nDone! Results written to no_difference_arms.csv\n";
+    std::cout << "\nDone! Results written to no_heterogeneity_xaxis.csv\n";
     std::cout << "Summary: Check which algorithm wins in different noise regimes.\n";
     
     return 0;
