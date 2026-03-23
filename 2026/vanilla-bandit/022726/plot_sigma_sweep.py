@@ -6,12 +6,12 @@ def main():
     # Enable LaTeX rendering for consistent math fonts
     # plt.rcParams['text.usetex'] = True
     plt.rcParams['font.family'] = 'serif'
-    plt.rcParams['font.size'] = 10
-    plt.rcParams['axes.labelsize'] = 11
+    plt.rcParams['font.size'] = 12
+    plt.rcParams['axes.labelsize'] = 12
     plt.rcParams['axes.titlesize'] = 12
-    plt.rcParams['legend.fontsize'] = 10
-    plt.rcParams['xtick.labelsize'] = 10
-    plt.rcParams['ytick.labelsize'] = 10
+    plt.rcParams['legend.fontsize'] = 11
+    plt.rcParams['xtick.labelsize'] = 11
+    plt.rcParams['ytick.labelsize'] = 11
     
     # Mature, muted color palette for academic publications (same as before)
     colors = {
