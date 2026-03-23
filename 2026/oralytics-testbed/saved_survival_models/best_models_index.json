@@ -1,0 +1,10 @@
+{
+  "created_at": "2026-03-11T14:41:06.941373",
+  "n_users": 69,
+  "model_counts": {
+    "rsf": 28,
+    "coxnet": 25,
+    "gbsurv": 15,
+    "coxph": 1
+  }
+}
