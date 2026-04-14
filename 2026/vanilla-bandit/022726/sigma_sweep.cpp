@@ -85,24 +85,43 @@ double pooled_thompson_sampling(int T, int n, const Mat &theta, double sigma_r,
             if(N[a]==0){m=mu0[a]; v=tau0[a]*tau0[a];}
             post_mean[a]=m; post_var[a]=v;
         }
-        
-        int best_a=0;
-        double best_val=-INFINITY;
-        for(int a=0; a<2; ++a){
-            std::normal_distribution<double> dist(post_mean[a], std::sqrt(post_var[a]));
-            double samp=dist(rng);
-            if(samp>best_val){best_val=samp; best_a=a;}
-        }
-        
-        for(int i=0; i<n; ++i){
+
+        // each participant independently samples from the shared posterior
+        for (int i = 0; i < n; ++i) {
+            double best_val = -INFINITY;
+            int best_a = 0;
+            for (int a = 0; a < 2; ++a) {
+                std::normal_distribution<double> dist(post_mean[a], std::sqrt(post_var[a]));
+                double samp = dist(rng);
+                if (samp > best_val) { best_val = samp; best_a = a; }
+            }
+
             std::normal_distribution<double> rd(theta[i][best_a], sigma_r);
-            double r=rd(rng);
+            double r = rd(rng);
             S[best_a] += r;
-            
+            N[best_a]++;
+
             double best_theta = std::max(theta[i][0], theta[i][1]);
             total_regret += (best_theta - theta[i][best_a]);
         }
-        N[best_a]+=n;
+        
+        // int best_a=0;
+        // double best_val=-INFINITY;
+        // for(int a=0; a<2; ++a){
+        //     std::normal_distribution<double> dist(post_mean[a], std::sqrt(post_var[a]));
+        //     double samp=dist(rng);
+        //     if(samp>best_val){best_val=samp; best_a=a;}
+        // }
+        
+        // for(int i=0; i<n; ++i){
+        //     std::normal_distribution<double> rd(theta[i][best_a], sigma_r);
+        //     double r=rd(rng);
+        //     S[best_a] += r;
+            
+        //     double best_theta = std::max(theta[i][0], theta[i][1]);
+        //     total_regret += (best_theta - theta[i][best_a]);
+        // }
+        // N[best_a]+=n;
     }
     return total_regret / n;
 }
@@ -145,7 +164,16 @@ double empirical_bayes(int T, int n, const Mat &theta, double sigma_r,
             
             double est_tau2 = var_m - mean_v;
             if (est_tau2 < 0.0) est_tau2 = 0.0;
-            mu_hat[a] = mean_m;
+            // mu_hat[a] = mean_m;
+
+            double wsum = 0.0, wmsum = 0.0;
+            for (int i = 0; i < n; ++i) {
+                double w = 1.0 / (tau2_hat[a] + v[i][a]);
+                wsum  += w;
+                wmsum += w * m[i][a];
+            }
+            mu_hat[a] = (wsum > 0.0) ? wmsum / wsum : mean_m;
+
             tau2_hat[a] = est_tau2;
         }
         
@@ -154,7 +182,9 @@ double empirical_bayes(int T, int n, const Mat &theta, double sigma_r,
             Vec m_eb(2);
             Vec v_eb(2);
             for (int a = 0; a < 2; ++a) {
-                double lam = (tau2_hat[a] > 0.0) ? (tau2_hat[a] / (tau2_hat[a] + v[i][a])) : 1.0;
+                // double lam = (tau2_hat[a] > 0.0) ? (tau2_hat[a] / (tau2_hat[a] + v[i][a])) : 1.0;
+                double lam = (tau2_hat[a] > 0.0) ? (tau2_hat[a] / (tau2_hat[a] + v[i][a])) : 0.0;
+
                 m_eb[a] = lam * m[i][a] + (1.0 - lam) * mu_hat[a];
                 if (tau2_hat[a] > 0.0) v_eb[a] = (v[i][a] * tau2_hat[a]) / (v[i][a] + tau2_hat[a]);
                 else v_eb[a] = 0.0;
@@ -194,7 +224,7 @@ int main(){
     int runs = 500;
     
     Vec mu0 = {0.0, 0.0};
-    Vec tau0 = {1.0, 1.0};
+    Vec tau0 = {1.0, 5.0};
     
     // Build custom sigma values: 0.01-0.1 by 0.01, 0.1-1 by 0.1, 1-10 by 0.5
     Vec sigma_values;
@@ -216,7 +246,7 @@ int main(){
     
     int n_sigma = sigma_values.size();
     
-    std::ofstream out("no_heterogeneity_xaxis.csv");
+    std::ofstream out("final_graphs_midterm/different_taus_final.csv");
     out << "sigma,mean_unpooled,se_unpooled,mean_pooled,se_pooled,mean_eb,se_eb,winner\n";
     
     std::cout << "Sweeping " << n_sigma << " sigma values from " << sigma_values[0] 
@@ -280,7 +310,7 @@ int main(){
     }
     
     out.close();
-    std::cout << "\nDone! Results written to no_heterogeneity_xaxis.csv\n";
+    std::cout << "\nDone! Results written to final_graphs_midterm/different_taus_final.csv\n";
     std::cout << "Summary: Check which algorithm wins in different noise regimes.\n";
     
     return 0;

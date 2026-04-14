@@ -21,7 +21,7 @@ def main():
     }
     
     # Read the sigma sweep results
-    df = pd.read_csv("no_heterogeneity_xaxis.csv")
+    df = pd.read_csv("final_graphs_midterm/different_taus_final.csv")
     
     # Create figure
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
@@ -55,7 +55,7 @@ def main():
     # Labels and title
     ax.set_xlabel(r'$\sigma$', fontsize=12)
     ax.set_ylabel('Final cumulative regret', fontsize=12)
-    ax.set_title(r'Algorithm Performance vs. Noise ($\mu_2=1$, $\tau=0$, $T=100$, $n=50$)', 
+    ax.set_title(r'Algorithm Performance vs. Noise ($\mu_2=1$, $\tau=1$, $T=100$, $n=50$)', 
                  fontsize=13, pad=15)
     
     # Add grid for readability
@@ -102,7 +102,7 @@ def main():
                 bbox=dict(boxstyle='round', facecolor='#f5f5f5', alpha=1.0, edgecolor='#cccccc'))
     
     # Add priors and runs at bottom
-    fig.text(0.5, 0.065, r"Priors: $\mu_0 = [0, 0]$, $\tau_0 = [1, 1]$", 
+    fig.text(0.5, 0.065, r"Priors: $\mu_0 = [0, 0]$, $\tau_0 = [1, 5]$", 
              fontsize=10, va='bottom', ha='center')
     fig.text(0.5, 0.04, r"Runs: 500 per $\sigma$ value", 
              fontsize=10, va='bottom', ha='center')
@@ -117,9 +117,9 @@ def main():
     
     # Save figure
     os.makedirs('plots', exist_ok=True)
-    plt.savefig("plots/no_heterogeneity_xaxis.png", dpi=150, bbox_inches='tight')
-    print("Saved plot to plots/no_heterogeneity_xaxis.png")
-    
+    plt.savefig("final_graphs_midterm/different_taus_final.png", dpi=150, bbox_inches='tight')
+    print("Saved plot to final_graphs_midterm/different_taus_final.png")
+
     # Print summary statistics
     print("\n=== Summary ===")
     print(f"Total sigma values tested: {len(df)}")
