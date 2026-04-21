@@ -305,16 +305,16 @@ double empirical_bayes(int T, int n, const Env& env, double sigma_r, double lam,
 
 // ---------------- Main ----------------
 int main() {
-    int n = 50, T = 200, runs = 100;
+    int n = 50, T = 100, runs = 200;
     double sigma_r = 0.5, lam = 1e-6;
 
     std::vector<Vec> mu_a = {
-        {0.0,  1},
-        {0.5, -1}
+        {0.0,  10},
+        {0.5, -10}
     };
     std::vector<M2> Sigma_a = {
-        {0.2, 0.0, 0.0, 0.2},
-        {0.2, 0.0, 0.0, 0.2}
+        {0.5, 0.0, 0.0, 0.5},
+        {0.5, 0.0, 0.0, 0.5}
     };
     Vec mu0_prior = {0.0, 0.0};
 
@@ -378,7 +378,7 @@ int main() {
                   << "  EB=" << mu_e
                   << "  winner=" << winner << "\n";
     }
-
+    
     out.close();
     std::cout << "\nDone!\n";
     return 0;

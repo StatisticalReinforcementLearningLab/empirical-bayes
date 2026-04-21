@@ -69,7 +69,7 @@ def main():
     ax.set_facecolor("#ffffff")
     ax.set_xlabel(r'$P(c_{i,t}=1)$', fontsize=12)
     ax.set_ylabel('Final cumulative regret', fontsize=12)
-    ax.set_title(r'$n=50$, $T=200$, 100 runs per $p$', fontsize=13, pad=18)
+    ax.set_title(r'$n=50$, $T=100$, 200 runs per $p$', fontsize=13, pad=18)
     ax.grid(True, alpha=0.3, linestyle='--', linewidth=0.5)
 
     winners = df['winner'].values
@@ -103,7 +103,7 @@ def main():
                 range_text += f"{winner}: $p\\in[{s:.2f},{e:.2f}]$\n"
 
         ax.text(
-            0.02, 0.985, range_text.rstrip('\n'),
+            0.015, 0.96, range_text.rstrip('\n'),
             transform=ax.transAxes,
             fontsize=9,
             va='top',
@@ -118,7 +118,7 @@ def main():
 
     ax.legend(
         loc='upper right',
-        bbox_to_anchor=(0.99, 0.99),
+        bbox_to_anchor=(0.999, 1),
         frameon=True,
         framealpha=0.65,
         facecolor='#f5f5f5',
@@ -130,15 +130,19 @@ def main():
         labelspacing=0.3
     )
 
+    # MAKE AXES CONSISTENT
+    ax2.set_xlim(-20, 20)      # adjust to cover your reward range
+    ax2.set_ylim(0, 1)      # adjust to cover your density range
+
     # ---------- bottom panel: theoretical reward distributions ----------
     # ---------- single source of truth for environment parameters ----------
     mu_a = {
-        0: np.array([0.0, 1.0]),
-        1: np.array([0.5, -1.0]),
+        0: np.array([0.0, 10]),
+        1: np.array([0.5, -10]),
     }
     Sigma_a = {
-        0: [0.2, 0.0, 0.0, 0.2],
-        1: [0.2, 0.0, 0.0, 0.2],
+        0: [0.5, 0.0, 0.0, 0.5],
+        1: [0.5, 0.0, 0.0, 0.5],
     }
     sigma_r = 0.5
     mu_prior = np.array([0.0, 0.0])
