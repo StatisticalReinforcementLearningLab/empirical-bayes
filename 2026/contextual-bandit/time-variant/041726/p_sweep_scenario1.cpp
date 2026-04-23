@@ -309,12 +309,21 @@ int main() {
     double sigma_r = 0.5, lam = 1e-6;
 
     std::vector<Vec> mu_a = {
+<<<<<<< HEAD
         {0.0,  10},
         {0.5, -10}
     };
     std::vector<M2> Sigma_a = {
         {0.5, 0.0, 0.0, 0.5},
         {0.5, 0.0, 0.0, 0.5}
+=======
+        {0.0,  0.5},
+        {1.0, 0.5}
+    };
+    std::vector<M2> Sigma_a = {
+        {0.10, 0.0, 0.0, 0.10},
+        {0.10, 0.0, 0.0, 0.10}
+>>>>>>> 09b11f6 (created file for time-invariant (no code yet))
     };
     Vec mu0_prior = {0.0, 0.0};
 
@@ -322,7 +331,7 @@ int main() {
     for (double p=0.10; p<=0.50+1e-9; p+=0.05) p_values.push_back(p);
     int np = p_values.size();
 
-    std::ofstream out("final_graphs_contextual/p_sweep_scenario1.csv");
+    std::ofstream out("testing_env_betina/high_T_1.csv");
     out << "p_context,mean_unpooled,se_unpooled,mean_pooled,se_pooled,"
            "mean_eb,se_eb,winner\n";
 

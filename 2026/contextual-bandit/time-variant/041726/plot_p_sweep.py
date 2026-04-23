@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 import os
 import numpy as np
 
+# import matplotlib as mpl
+# mpl.rcParams["text.usetex"] = True
+
 plt.rcParams['text.usetex'] = True
 plt.rcParams['text.latex.preamble'] = r'\usepackage{amsmath}\usepackage{amssymb}\usepackage{bm}'
 
@@ -40,7 +43,7 @@ def main():
         'a1c1': '#9467bd',
     }
 
-    df = pd.read_csv("final_graphs_contextual/p_sweep_scenario1.csv")
+    df = pd.read_csv("testing_env_betina/high_T_1.csv")
 
     fig, (ax, ax2) = plt.subplots(
         2, 1,
@@ -69,7 +72,11 @@ def main():
     ax.set_facecolor("#ffffff")
     ax.set_xlabel(r'$P(c_{i,t}=1)$', fontsize=12)
     ax.set_ylabel('Final cumulative regret', fontsize=12)
+<<<<<<< HEAD
     ax.set_title(r'$n=50$, $T=100$, 200 runs per $p$', fontsize=13, pad=18)
+=======
+    ax.set_title(r'$n=50$, $T=1000$, 100 runs per $p$', fontsize=13, pad=18)
+>>>>>>> 09b11f6 (created file for time-invariant (no code yet))
     ax.grid(True, alpha=0.3, linestyle='--', linewidth=0.5)
 
     winners = df['winner'].values
@@ -137,12 +144,21 @@ def main():
     # ---------- bottom panel: theoretical reward distributions ----------
     # ---------- single source of truth for environment parameters ----------
     mu_a = {
+<<<<<<< HEAD
         0: np.array([0.0, 10]),
         1: np.array([0.5, -10]),
     }
     Sigma_a = {
         0: [0.5, 0.0, 0.0, 0.5],
         1: [0.5, 0.0, 0.0, 0.5],
+=======
+        0: np.array([0.0, 0.5]),
+        1: np.array([1.0, 0.5]),
+    }
+    Sigma_a = {
+        0: [0.1, 0.0, 0.0, 0.1],
+        1: [0.1, 0.0, 0.0, 0.1],
+>>>>>>> 09b11f6 (created file for time-invariant (no code yet))
     }
     sigma_r = 0.5
     mu_prior = np.array([0.0, 0.0])
@@ -207,6 +223,7 @@ def main():
         rf"\textbf{{True environment}}: "
         rf"$\bm{{\mu}}_0=({mu00:.2f},\,{mu01:.2f})^\top$, "
         rf"$\bm{{\mu}}_1=({mu10:.2f},\,{mu11:.2f})^\top$, "
+        
         rf"$\bm{{\Sigma}}_0=\begin{{pmatrix}}{s0[0]:.2f}&{s0[1]:.2f}\\{s0[2]:.2f}&{s0[3]:.2f}\end{{pmatrix}}$, "
         rf"$\bm{{\Sigma}}_1=\begin{{pmatrix}}{s1[0]:.2f}&{s1[1]:.2f}\\{s1[2]:.2f}&{s1[3]:.2f}\end{{pmatrix}}$, "
         rf"$\sigma={sigma_r:.2f}$"
@@ -236,13 +253,13 @@ def main():
     # more room at bottom so annotations don't get cut off
     plt.tight_layout(rect=[0, 0.16, 1.0, 0.97])
 
-    os.makedirs('final_graphs_contextual', exist_ok=True)
+    os.makedirs('testing_env_betina', exist_ok=True)
     plt.savefig(
-        "final_graphs_contextual/p_sweep_scenario1.png",
+        "testing_env_betina/high_T_1.png",
         dpi=150,
         bbox_inches='tight'
     )
-    print("Saved plot to final_graphs_contextual/p_sweep_scenario1.png")
+    print("Saved plot to testing_env_betina/high_T_1.png")
 
     print("\n=== Summary ===")
     print(f"Total p values tested: {len(df)}")
