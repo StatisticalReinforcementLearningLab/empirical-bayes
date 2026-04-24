@@ -43,7 +43,7 @@ def main():
         'a1c1': '#9467bd',
     }
 
-    df = pd.read_csv("graphs_ti/highn.csv")
+    df = pd.read_csv("graphs_ns/changen.csv")
 
     fig, (ax, ax2) = plt.subplots(
         2, 1,
@@ -72,7 +72,7 @@ def main():
     ax.set_facecolor("#ffffff")
     ax.set_xlabel(r'$P(c_{i,t}=1)$', fontsize=12)
     ax.set_ylabel('Final cumulative regret', fontsize=12)
-    ax.set_title(r'$n=200$, $T=30$, 200 runs per $p$', fontsize=13, pad=18)
+    ax.set_title(r'$n=100$, $T=10$, 200 runs per $p$', fontsize=13, pad=18)
     ax.grid(True, alpha=0.3, linestyle='--', linewidth=0.5)
 
     winners = df['winner'].values
@@ -144,8 +144,8 @@ def main():
         1: np.array([0.5, -1.0]),
     }
     Sigma_a = {
-        0: [0.10, 0.0, 0.0, 0.10],
-        1: [0.10, 0.0, 0.0, 0.10],
+        0: [1, -0.5, -0.5, 1],
+        1: [1, -0.5, -0.5, 1],
     }
     sigma_r = 1.0
     mu_prior = np.array([0.0, 0.0])
@@ -240,13 +240,13 @@ def main():
     # more room at bottom so annotations don't get cut off
     plt.tight_layout(rect=[0, 0.16, 1.0, 0.97])
 
-    os.makedirs('graphs_ti', exist_ok=True)
+    os.makedirs('graphs_ns', exist_ok=True)
     plt.savefig(
-        "graphs_ti/highn.png",
+        "graphs_ns/ahhh.png",
         dpi=150,
         bbox_inches='tight'
     )
-    print("Saved plot to graphs_ti/highn.png")
+    print("Saved plot to graphs_ns/changen.png")
 
     print("\n=== Summary ===")
     print(f"Total p values tested: {len(df)}")

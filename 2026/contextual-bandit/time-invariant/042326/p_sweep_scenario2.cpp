@@ -359,8 +359,8 @@ double empirical_bayes(int T, int n, const Env& env, double sigma_r, double lam,
 
 // ---------------- Main ----------------
 int main() {
-    int    n      = 200;
-    int    T      = 30;
+    int    n      = 100;
+    int    T      = 10;
     int    runs   = 200;
     double sigma_r = 1.0;
     double lam     = 1e-6;
@@ -371,8 +371,8 @@ int main() {
         {0.5, -1.0}    
     };
     std::vector<M2> Sigma_a = {
-        {0.1, 0.0, 0.0, 0.1},
-        {0.1, 0.0, 0.0, 0.1}
+        {1, -0.5, -0.5, 1},
+        {1, -0.5, -0.5, 1}
     };
     Vec mu0_prior = {0.0, 0.0};
 
@@ -380,7 +380,7 @@ int main() {
     for (double p=0.10; p<=0.50+1e-9; p+=0.05) p_values.push_back(p);
     int np = p_values.size();
 
-    std::ofstream out("graphs_ti/highn.csv");
+    std::ofstream out("graphs_ns/changen.csv");
     out << "p_context,mean_unpooled,se_unpooled,mean_pooled,se_pooled,"
            "mean_eb,se_eb,winner\n";
 
@@ -438,6 +438,6 @@ int main() {
     }
 
     out.close();
-    std::cout << "\nDone! Results written to graphs_ti/highn.csv\n";
+    std::cout << "\nDone! Results written to graphs_ns/changen.csv\n";
     return 0;
 }
