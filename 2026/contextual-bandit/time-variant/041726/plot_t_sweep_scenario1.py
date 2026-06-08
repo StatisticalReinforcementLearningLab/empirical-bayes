@@ -43,7 +43,7 @@ def main():
         'a1c1': '#9467bd',
     }
 
-    df = pd.read_csv("testing_env_betina/env_1_axes_high_T.csv")
+    df = pd.read_csv("T_sweep/T_sweep_conj3_a.csv")
 
     fig, (ax, ax2) = plt.subplots(
         2, 1,
@@ -59,24 +59,24 @@ def main():
         ('mean_eb',       'se_eb',       'EB',          'eb'),
     ]:
         ax.plot(
-            df.p_context, df[col],
+            df['T'], df[col],
             label=label, color=colors[key], linewidth=2.2, alpha=0.95
         )
         ax.fill_between(
-            df.p_context,
+            df['T'],
             df[col] - 1.96 * df[se_col],
             df[col] + 1.96 * df[se_col],
             color=colors[key], alpha=0.15
         )
 
     ax.set_facecolor("#ffffff")
-    ax.set_xlabel(r'$P(c_{i,t}=1)$', fontsize=12)
+    ax.set_xlabel(r'$T$', fontsize=12)
     ax.set_ylabel('Final cumulative regret', fontsize=12)
-    ax.set_title(r'$n=50$, $T=200$, 200 runs per $p$', fontsize=13, pad=18)
+    ax.set_title(r'$n=100$, $p=0.5$, 300 runs per $T$', fontsize=13, pad=18)
     ax.grid(True, alpha=0.3, linestyle='--', linewidth=0.5)
 
     winners = df['winner'].values
-    p_vals = df['p_context'].values
+    p_vals = df['T'].values
     ranges = []
     current = winners[0]
     start = p_vals[0]
@@ -101,9 +101,9 @@ def main():
         range_text = "Best performing:\n"
         for winner, s, e in ranges:
             if s == e:
-                range_text += f"{winner}: $p={s:.2f}$\n"
+                range_text += f"{winner}: $T={int(s)}$\n"
             else:
-                range_text += f"{winner}: $p\\in[{s:.2f},{e:.2f}]$\n"
+                range_text += f"{winner}: $T\\in[{int(s)},{int(e)}]$\n"
 
         ax.text(
             0.015, 0.96, range_text.rstrip('\n'),
@@ -140,12 +140,12 @@ def main():
     # ---------- bottom panel: theoretical reward distributions ----------
     # ---------- single source of truth for environment parameters ----------
     mu_a = {
-        0: np.array([0.0, 0.50]),
-        1: np.array([1.00, 0.50]),
+        0: np.array([0.0, 0.00]),
+        1: np.array([0.07, 0.04]),
     }
     Sigma_a = {
-        0: [0.10, 0.0, 0.0, 0.10],
-        1: [0.10, 0.0, 0.0, 0.10],
+        0: [0.50, 0.0, 0.0, 0.50],
+        1: [0.50, 0.0, 0.0, 0.50],
     }
     sigma_r = 0.5
     mu_prior = np.array([0.0, 0.0])
@@ -242,23 +242,23 @@ def main():
 
     os.makedirs('testing_env_betina', exist_ok=True)
     plt.savefig(
-        "testing_env_betina/env_1_axes_high_T.png",
+        "T_sweep/T_sweep_conj3_a.png",
         dpi=150,
         bbox_inches='tight'
     )
-    print("Saved plot to testing_env_betina/env_1_axes_high_T.png")
+    print("Saved plot to T_sweep/T_sweep_conj3_a.png")
 
     print("\n=== Summary ===")
-    print(f"Total p values tested: {len(df)}")
+    print(f"Total T values tested: {len(df)}")
     print(f"\nWinner distribution:\n{df['winner'].value_counts().to_string()}")
 
     if ranges:
         print("\nRanges where each algorithm performs best:")
         for w, s, e in ranges:
             if s == e:
-                print(f"  {w}: p = {s:.2f}")
+                print(f"  {w}: T = {int(s)}")
             else:
-                print(f"  {w}: p in [{s:.2f}, {e:.2f}]")
+                print(f"  {w}: T in [int(s), int(e)]")
 
     plt.show()
 

@@ -305,45 +305,64 @@ double empirical_bayes(int T, int n, const Env& env, double sigma_r, double lam,
 
 // ---------------- Main ----------------
 int main() {
-    int n = 50, T = 50, runs = 200;
-    double sigma_r = 0.5, lam = 1e-6;
+    int n = 100; 
+    // int T = 50,
+    int runs = 300;
+    double sigma_r = 0.5; 
+    double lam = 1e-6;
+    double p_context = 0.5;
 
     std::vector<Vec> mu_a = {
-        {0.0,  0.50},
-        {1.0, 0.50}
+        {0.0,  0.0},
+        {0.07, 0.04}
     };
     std::vector<M2> Sigma_a = {
-        {0.10, 0.0, 0.0, 0.10},
-        {0.10, 0.0, 0.0, 0.10}
+        {0.50, 0.0, 0.0, 0.50},
+        {0.50, 0.0, 0.0, 0.50}
     };
     Vec mu0_prior = {0.0, 0.0};
 
-    Vec p_values;
-    for (double p=0.10; p<=0.50+1e-9; p+=0.05) p_values.push_back(p);
-    int np = p_values.size();
+    // Vec p_values;
+    // for (double p=0.10; p<=0.50+1e-9; p+=0.05) p_values.push_back(p);
+    // int np = p_values.size();
 
-    std::ofstream out("testing_env_betina/env_1_axes_low_T.csv");
-    out << "p_context,mean_unpooled,se_unpooled,mean_pooled,se_pooled,"
-           "mean_eb,se_eb,winner\n";
+    // SWEEPING T! 
+    IVec T_values;
+    for (int Tv=1; Tv<=25; Tv+=1) T_values.push_back(Tv);
+    int nT = T_values.size();
 
-    std::cout << "Sweeping " << np << " p values...\n";
+    // std::ofstream out("testing_env_betina/env_1_axes_low_T.csv");
+    // out << "p_context,mean_unpooled,se_unpooled,mean_pooled,se_pooled,"
+    //        "mean_eb,se_eb,winner\n";
 
-    for (int pi=0; pi<np; ++pi) {
-        double p = p_values[pi];
+    // std::cout << "Sweeping " << np << " p values...\n";
+    std::ofstream out("T_sweep/T_sweep_conj3_a.csv");
+    out << "T,mean_unpooled,se_unpooled,mean_pooled,se_pooled,"
+       "mean_eb,se_eb,winner\n";
+
+    std::cout << "Sweeping " << nT << " T values (time-variant context)...\n";
+    
+
+    // for (int pi=0; pi<np; ++pi) {
+    for (int ti=0; ti<nT; ++ti) {
+        // double p = p_values[pi];
+        // double sum_u=0, sum_p=0, sum_e=0;
+        // double ssq_u=0, ssq_p=0, ssq_e=0;
+        double T = T_values[ti];
         double sum_u=0, sum_p=0, sum_e=0;
         double ssq_u=0, ssq_p=0, ssq_e=0;
 
         for (int r=0; r<runs; ++r) {
-            std::mt19937_64 rng_env(r + 1000 + pi*10000);
-            Env env = set_environment(n, T, mu_a, Sigma_a, p, rng_env);
+            std::mt19937_64 rng_env(r + 1000 + ti*10000);
+            Env env = set_environment(n, T, mu_a, Sigma_a, p_context, rng_env);
 
-            std::mt19937_64 rng_u(r + 2000 + pi*10000);
+            std::mt19937_64 rng_u(r + 2000 + ti*10000);
             double reg_u = unpooled_ts(T, n, env, sigma_r, lam, mu0_prior, rng_u);
 
-            std::mt19937_64 rng_p(r + 3000 + pi*10000);
+            std::mt19937_64 rng_p(r + 3000 + ti*10000);
             double reg_p = pooled_ts(T, n, env, sigma_r, lam, mu0_prior, rng_p);
 
-            std::mt19937_64 rng_e(r + 4000 + pi*10000);
+            std::mt19937_64 rng_e(r + 4000 + ti*10000);
             double reg_e = empirical_bayes(T, n, env, sigma_r, lam, mu0_prior, rng_e);
 
             sum_u+=reg_u; ssq_u+=reg_u*reg_u;
@@ -368,11 +387,11 @@ int main() {
         else                winner="EB";
 
         out << std::fixed << std::setprecision(4)
-            << p    << ',' << mu_u << ',' << se_u << ','
+            << T    << ',' << mu_u << ',' << se_u << ','
             << mu_p << ',' << se_p << ','
             << mu_e << ',' << se_e << ',' << winner << '\n';
 
-        std::cout << "p=" << std::fixed << std::setprecision(2) << p
+        std::cout << "T=" << std::fixed << std::setprecision(2) << T
                   << "  U="  << std::setprecision(3) << mu_u
                   << "  P="  << mu_p
                   << "  EB=" << mu_e
@@ -380,6 +399,6 @@ int main() {
     }
     
     out.close();
-    std::cout << "\nDone!\n";
+    std::cout << "\nDone! Results written to T_sweep/T_sweep_conj3_a.csv\n";
     return 0;
 }
