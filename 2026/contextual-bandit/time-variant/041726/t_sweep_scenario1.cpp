@@ -211,7 +211,7 @@ double pooled_ts(int T, int n, const Env& env, double sigma_r, double lam,
 
 // ---------------- Empirical Bayes ----------------
 double empirical_bayes(int T, int n, const Env& env, double sigma_r, double lam,
-                       const Vec& mu0_prior, std::mt19937_64& rng) {
+                       const Vec& mu0_prior, std::mt19937_64& rng, double& out_final_shrinkage) {
     std::vector<std::vector<RidgeState>> state(n, std::vector<RidgeState>(2));
     for (int i=0; i<n; ++i) for (int a=0; a<2; ++a) init_state(state[i][a]);
 
@@ -273,6 +273,11 @@ double empirical_bayes(int T, int n, const Env& env, double sigma_r, double lam,
         }
 
         M2 Sp_inv[2] = { inv2(Sigma_pop[0]), inv2(Sigma_pop[1]) };
+
+        double step_shrinkage_sum = 0.0;
+        int step_shrinkage_count = 0;
+
+
         for (int i=0; i<n; ++i) {
             Vec x = {1.0, (double)env.context[i][t]};
             int a_sel;
@@ -282,6 +287,16 @@ double empirical_bayes(int T, int n, const Env& env, double sigma_r, double lam,
                 double reward_mean[2], reward_var[2];
                 for (int a=0; a<2; ++a) {
                     M2  Si_inv    = inv2(Sigma_hat[i][a]);
+                    
+
+                    // CALCULATING SHRINKAGE RATIO
+                    if (t == T - 1) { // Only calculate on the final time step
+                        double tr_pop = Sp_inv[a].a + Sp_inv[a].d;
+                        double tr_ind = Si_inv.a + Si_inv.d;
+                        step_shrinkage_sum += tr_ind / (tr_pop + tr_ind);
+                        step_shrinkage_count++;
+                    }
+
                     M2  post_cov  = inv2(add2(Sp_inv[a], Si_inv));
                     Vec rhs       = matvec2(Sp_inv[a], mu_pop[a]);
                     Vec tmp       = matvec2(Si_inv, theta_hat[i][a]);
@@ -299,13 +314,19 @@ double empirical_bayes(int T, int n, const Env& env, double sigma_r, double lam,
             update_state(state[i][a_sel], x, r);
             total_regret += best_expected(env,i,t) - mean_r;
         }
+
+        // EXPORT RATIO 
+        if (t == T - 1 && step_shrinkage_count > 0) {
+            out_final_shrinkage = step_shrinkage_sum / step_shrinkage_count;
+        }
+
     }
     return total_regret / n;
 }
 
 // ---------------- Main ----------------
 int main() {
-    int n = 100; 
+    int n = 200; 
     // int T = 50,
     int runs = 300;
     double sigma_r = 0.5; 
@@ -314,7 +335,7 @@ int main() {
 
     std::vector<Vec> mu_a = {
         {0.0,  0.0},
-        {0.07, 0.04}
+        {0.40, 0.20}
     };
     std::vector<M2> Sigma_a = {
         {0.50, 0.0, 0.0, 0.50},
@@ -333,12 +354,12 @@ int main() {
 
     // std::ofstream out("testing_env_betina/env_1_axes_low_T.csv");
     // out << "p_context,mean_unpooled,se_unpooled,mean_pooled,se_pooled,"
-    //        "mean_eb,se_eb,winner\n";
+    //        "mean_eb,se_eb,final_shrinkage,winner\n";
 
     // std::cout << "Sweeping " << np << " p values...\n";
-    std::ofstream out("T_sweep/T_sweep_conj3_a.csv");
+    std::ofstream out("T_shrinkages/conj1_a.csv");
     out << "T,mean_unpooled,se_unpooled,mean_pooled,se_pooled,"
-       "mean_eb,se_eb,winner\n";
+       "mean_eb,se_eb,final_shrinkage,winner\n";
 
     std::cout << "Sweeping " << nT << " T values (time-variant context)...\n";
     
@@ -351,6 +372,7 @@ int main() {
         double T = T_values[ti];
         double sum_u=0, sum_p=0, sum_e=0;
         double ssq_u=0, ssq_p=0, ssq_e=0;
+        double sum_shrinkage = 0.0;
 
         for (int r=0; r<runs; ++r) {
             std::mt19937_64 rng_env(r + 1000 + ti*10000);
@@ -363,11 +385,13 @@ int main() {
             double reg_p = pooled_ts(T, n, env, sigma_r, lam, mu0_prior, rng_p);
 
             std::mt19937_64 rng_e(r + 4000 + ti*10000);
-            double reg_e = empirical_bayes(T, n, env, sigma_r, lam, mu0_prior, rng_e);
+            double run_shrinkage = 0.0;
+            double reg_e = empirical_bayes(T, n, env, sigma_r, lam, mu0_prior, rng_e, run_shrinkage);
 
             sum_u+=reg_u; ssq_u+=reg_u*reg_u;
             sum_p+=reg_p; ssq_p+=reg_p*reg_p;
             sum_e+=reg_e; ssq_e+=reg_e*reg_e;
+            sum_shrinkage += run_shrinkage;
         }
 
         auto mean_se = [&](double sum, double ssq) -> std::pair<double,double> {
@@ -379,6 +403,7 @@ int main() {
         auto [mu_u, se_u] = mean_se(sum_u, ssq_u);
         auto [mu_p, se_p] = mean_se(sum_p, ssq_p);
         auto [mu_e, se_e] = mean_se(sum_e, ssq_e);
+        double avg_shrinkage = sum_shrinkage / runs; // average ratio
 
         std::string winner;
         double m = std::min({mu_u, mu_p, mu_e});
@@ -389,16 +414,18 @@ int main() {
         out << std::fixed << std::setprecision(4)
             << T    << ',' << mu_u << ',' << se_u << ','
             << mu_p << ',' << se_p << ','
-            << mu_e << ',' << se_e << ',' << winner << '\n';
+            << mu_e << ',' << se_e << ','
+            << avg_shrinkage << ',' << winner << '\n'; // Write to CSV
 
         std::cout << "T=" << std::fixed << std::setprecision(2) << T
                   << "  U="  << std::setprecision(3) << mu_u
                   << "  P="  << mu_p
                   << "  EB=" << mu_e
+                  << "  shrinkage=" << avg_shrinkage
                   << "  winner=" << winner << "\n";
     }
     
     out.close();
-    std::cout << "\nDone! Results written to T_sweep/T_sweep_conj3_a.csv\n";
+    std::cout << "\nDone! Results written to T_shrinkages/conj1_a.csv\n";
     return 0;
 }

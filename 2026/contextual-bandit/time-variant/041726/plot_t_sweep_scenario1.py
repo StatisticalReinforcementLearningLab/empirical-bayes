@@ -43,7 +43,7 @@ def main():
         'a1c1': '#9467bd',
     }
 
-    df = pd.read_csv("T_sweep/T_sweep_conj3_a.csv")
+    df = pd.read_csv("T_shrinkages/conj1_a.csv")
 
     fig, (ax, ax2) = plt.subplots(
         2, 1,
@@ -72,7 +72,7 @@ def main():
     ax.set_facecolor("#ffffff")
     ax.set_xlabel(r'$T$', fontsize=12)
     ax.set_ylabel('Final cumulative regret', fontsize=12)
-    ax.set_title(r'$n=100$, $p=0.5$, 300 runs per $T$', fontsize=13, pad=18)
+    ax.set_title(r'$n=200$, $p=0.5$, 300 runs per $T$', fontsize=13, pad=18)
     ax.grid(True, alpha=0.3, linestyle='--', linewidth=0.5)
 
     winners = df['winner'].values
@@ -119,7 +119,36 @@ def main():
             )
         )
 
+        # ADDING SECOND AXIS
+        ax_twin = ax.twinx()
+        ax_twin.plot(
+            df['T'], df['final_shrinkage'], 
+            label='EB Shrinkage Ratio', 
+            color='black', linestyle='--', linewidth=2, alpha=0.8
+        )
+        ax_twin.set_ylabel('Shrinkage Ratio', fontsize=12, color='black')
+        ax_twin.set_ylim(-0.05, 1.05)
+        ax_twin.tick_params(axis='y', labelcolor='black', labelsize=11)
+
+    # ax.legend(
+    #     loc='upper right',
+    #     bbox_to_anchor=(0.999, 1),
+    #     frameon=True,
+    #     framealpha=0.65,
+    #     facecolor='#f5f5f5',
+    #     edgecolor='#cccccc',
+    #     fontsize=9,
+    #     handlelength=1.5,
+    #     handletextpad=0.5,
+    #     borderpad=0.4,
+    #     labelspacing=0.3
+    # )
+
+    h1, l1 = ax.get_legend_handles_labels()
+    h2, l2 = ax_twin.get_legend_handles_labels()
+    
     ax.legend(
+        h1 + h2, l1 + l2,  # Combine handles and labels here
         loc='upper right',
         bbox_to_anchor=(0.999, 1),
         frameon=True,
@@ -141,7 +170,7 @@ def main():
     # ---------- single source of truth for environment parameters ----------
     mu_a = {
         0: np.array([0.0, 0.00]),
-        1: np.array([0.07, 0.04]),
+        1: np.array([0.40, 0.20]),
     }
     Sigma_a = {
         0: [0.50, 0.0, 0.0, 0.50],
@@ -242,11 +271,11 @@ def main():
 
     os.makedirs('testing_env_betina', exist_ok=True)
     plt.savefig(
-        "T_sweep/T_sweep_conj3_a.png",
+        "T_shrinkages/conj1_a.png",
         dpi=150,
         bbox_inches='tight'
     )
-    print("Saved plot to T_sweep/T_sweep_conj3_a.png")
+    print("Saved plot to T_shrinkages/conj1_a.png")
 
     print("\n=== Summary ===")
     print(f"Total T values tested: {len(df)}")
