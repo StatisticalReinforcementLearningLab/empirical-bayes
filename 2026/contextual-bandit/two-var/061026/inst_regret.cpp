@@ -276,7 +276,11 @@ double unpooled_ts(int T, int n, const Env& env, double sigma_r, double lam,
     std::vector<std::vector<RidgeState2>> state(n, std::vector<RidgeState2>(2));
     for (int i=0;i<n;++i) for (int a=0;a<2;++a) init_state2(state[i][a]);
 
-    double total_regret = 0.0;
+    //double total_regret = 0.0;
+
+    double inst_regret = 0.0;
+
+
     std::uniform_int_distribution<int> ud(0,1);
     std::normal_distribution<double> nd(0.0,1.0);
 
@@ -299,19 +303,25 @@ double unpooled_ts(int T, int n, const Env& env, double sigma_r, double lam,
             double mean_r = expected_reward(env,i,t,a_sel);
             double r = mean_r + sigma_r*nd(rng);
             update_state2(state[i][a_sel], xL, r);
-            total_regret += best_expected(env,i,t) - mean_r;
+            // total_regret += best_expected(env,i,t) - mean_r;
+            if (t == T - 1) {
+                inst_regret += best_expected(env,i,t) - mean_r;
+            }
         }
     }
-    return total_regret / n;
+    // return total_regret / n;
+    return inst_regret / n;
 }
 
----------------- Pooled Thompson Sampling ----------------
+// ---------------- Pooled Thompson Sampling ----------------
 double pooled_ts(int T, int n, const Env& env, double sigma_r, double lam,
                  const Vec& mu_prior3, std::mt19937_64& rng) {
     std::vector<RidgeState3> state(2);
     for (int a=0;a<2;++a) init_state3(state[a]);
 
-    double total_regret = 0.0;
+    // double total_regret = 0.0;
+    double inst_regret = 0.0;
+
     std::uniform_int_distribution<int> ud(0,1);
     std::normal_distribution<double> nd(0.0,1.0);
 
@@ -337,49 +347,15 @@ double pooled_ts(int T, int n, const Env& env, double sigma_r, double lam,
             double mean_r = expected_reward(env,i,t,a_sel);
             double r = mean_r + sigma_r*nd(rng);
             update_state3(state[a_sel], xP, r);
-            total_regret += best_expected(env,i,t) - mean_r;
+            // total_regret += best_expected(env,i,t) - mean_r;
+            if (t == T - 1) {
+                inst_regret += best_expected(env,i,t) - mean_r;
+            }
         }
     }
-    return total_regret / n;
+    // return total_regret / n;
+    return inst_regret / n;
 }
-
-// double pooled_ts(int T, int n, const Env& env, double sigma_r, double lam,
-//     const Vec& mu_prior2, std::mt19937_64& rng) {
-//     std::vector<RidgeState2> state(2);
-//     for (int a = 0; a < 2; ++a) init_state2(state[a]);
-
-//     double total_regret = 0.0;
-//     std::normal_distribution<double> nd(0.0, 1.0);
-
-//     for (int t = 0; t < T; ++t) {
-//         Vec theta_hat[2];
-//         M2 Sigma_hat[2];
-
-//         for (int a = 0; a < 2; ++a) {
-//             ridge_estimate2(state[a], lam, mu_prior2, theta_hat[a], Sigma_hat[a]);
-//         }
-
-//         for (int i = 0; i < n; ++i) {
-//             Vec xL = {1.0, (double)env.state[i][t]};
-
-//             double samp_reward[2];
-//             for (int a = 0; a < 2; ++a) {
-//                 Vec draw = sample_mvn2(theta_hat[a], Sigma_hat[a], rng);
-//                 samp_reward[a] = xL[0] * draw[0] + xL[1] * draw[1];
-//             }
-
-//             int a_sel = (samp_reward[1] > samp_reward[0]) ? 1 : 0;
-
-//             double mean_r = expected_reward(env, i, t, a_sel);
-//             double r = mean_r + sigma_r * nd(rng);
-
-//             update_state2(state[a_sel], xL, r);
-//             total_regret += best_expected(env, i, t) - mean_r;
-//         }
-//     }
-
-//     return total_regret / n;
-// }
 
 // ---------------- Empirical Bayes ----------------
 double empirical_bayes(int T, int n, const Env& env, double sigma_r, double lam,
@@ -395,7 +371,9 @@ double empirical_bayes(int T, int n, const Env& env, double sigma_r, double lam,
     std::vector<std::vector<M2>>  Sigma_hat(n, std::vector<M2>(2, {1,0,0,1}));
     std::vector<std::vector<bool>> has_data(n, std::vector<bool>(2,false));
 
-    double total_regret = 0.0;
+    // double total_regret = 0.0;
+    double inst_regret = 0.0;
+
     std::uniform_int_distribution<int> ud(0,1);
     std::uniform_real_distribution<double> ur(0.0,1.0);
     std::normal_distribution<double> nd(0.0,1.0);
@@ -496,18 +474,22 @@ double empirical_bayes(int T, int n, const Env& env, double sigma_r, double lam,
             double mean_r = expected_reward(env,i,t,a_sel);
             double r = mean_r + sigma_r*nd(rng);
             update_state2(state[i][a_sel], xL, r);
-            total_regret += best_expected(env,i,t) - mean_r;
+            // total_regret += best_expected(env,i,t) - mean_r;
+            if (t == T - 1) {
+                inst_regret += best_expected(env,i,t) - mean_r;
+            }
         }
 
         if (t == T-1 && step_shrinkage_count > 0)
             out_final_shrinkage = step_shrinkage_sum / step_shrinkage_count;
     }
-    return total_regret / n;
+    // return total_regret / n;
+    return inst_regret / n;
 }
 
 // ---------------- Main ----------------
 int main() {
-    int n = 30;
+    int n = 200;
     int runs = 20;
     double sigma_r = 0.5;
     double lam = 1e-6;
@@ -528,10 +510,10 @@ int main() {
     Vec mu_prior3 = {0.0, 0.0, 0.0};  // population/pooled prior for theta=(intercept,c,s)
 
     IVec T_values;
-    for (int Tv=1; Tv<=1001; Tv+=100) T_values.push_back(Tv);
+    for (int Tv=1; Tv<=1000; Tv+=100) T_values.push_back(Tv);
     int nT = T_values.size();
 
-    std::ofstream out("testing_code/061226_1.csv");
+    std::ofstream out("testing_code/INSTANT.csv");
     out << "T,mean_unpooled,se_unpooled,mean_pooled,se_pooled,"
         << "mean_eb,se_eb,final_shrinkage,winner\n";
 
@@ -552,7 +534,6 @@ int main() {
 
             std::mt19937_64 rng_p(r + 3000 + ti*10000);
             double reg_p = pooled_ts(T, n, env, sigma_r, lam, mu_prior3, rng_p);
-            // double reg_p = pooled_ts(T, n, env, sigma_r, lam, mu_prior2, rng_p);
 
             std::mt19937_64 rng_e(r + 4000 + ti*10000);
             double run_shrinkage = 0.0;
@@ -597,6 +578,6 @@ int main() {
     }
 
     out.close();
-    std::cout << "\nDone! Results written to testing_code/061226_1.csv\n";
+    std::cout << "\nDone! Results written to testing_code/INSTANT.csv\n";
     return 0;
 }

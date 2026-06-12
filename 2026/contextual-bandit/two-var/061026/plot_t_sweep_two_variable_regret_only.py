@@ -63,8 +63,8 @@ def main():
     plt.rcParams['ytick.labelsize'] = 11
 
     # ---------- file paths ----------
-    csv_path = "conjectures/two_variable_conj5_a.csv"
-    output_path = "conjectures/two_variable_conj5_a.png"
+    csv_path = "testing_code/061226_1.csv"
+    output_path = "testing_code/061226_1.png"
 
     if not os.path.exists(csv_path):
         raise FileNotFoundError(
@@ -93,25 +93,25 @@ def main():
 
     # ---------- single source of truth for environment parameters ----------
     # Keep these synchronized with t_sweep_two_variable.cpp.
-    n = 200
-    runs_per_T = 300
+    n = 30
+    runs_per_T = 20
     p_context = 0.5
     p_state = 0.5
 
     mu_a = {
         0: np.array([0.00, 0.00, 0.00]),
-        1: np.array([0.40, 0.05, 0.30]),
+        1: np.array([0.40, 0.20, 0.20]),
     }
     Sigma_a = {
         0: np.array([
             [0.50, 0.00, 0.00],
-            [0.00, 0.25, 0.00],
-            [0.00, 0.00, 0.75],
+            [0.00, 0.50, 0.00],
+            [0.00, 0.00, 0.50],
         ]),
         1: np.array([
             [0.50, 0.00, 0.00],
-            [0.00, 0.25, 0.00],
-            [0.00, 0.00, 0.75],
+            [0.00, 0.50, 0.00],
+            [0.00, 0.00, 0.50],
         ]),
     }
     sigma_r = 0.5

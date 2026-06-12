@@ -305,81 +305,81 @@ double unpooled_ts(int T, int n, const Env& env, double sigma_r, double lam,
     return total_regret / n;
 }
 
----------------- Pooled Thompson Sampling ----------------
-double pooled_ts(int T, int n, const Env& env, double sigma_r, double lam,
-                 const Vec& mu_prior3, std::mt19937_64& rng) {
-    std::vector<RidgeState3> state(2);
-    for (int a=0;a<2;++a) init_state3(state[a]);
-
-    double total_regret = 0.0;
-    std::uniform_int_distribution<int> ud(0,1);
-    std::normal_distribution<double> nd(0.0,1.0);
-
-    for (int t=0;t<T;++t) {
-        Vec theta_hat[2]; M3 Sigma_hat[2]; bool ready[2];
-        for (int a=0;a<2;++a) {
-            ridge_estimate3(state[a], lam, mu_prior3, theta_hat[a], Sigma_hat[a]);
-            ready[a] = state[a].n_obs > 0;
-        }
-        for (int i=0;i<n;++i) {
-            Vec xP = {1.0, (double)env.context[i], (double)env.state[i][t]};
-            int a_sel;
-            if (!ready[0] || !ready[1]) {
-                a_sel = ud(rng);
-            } else {
-                double samp_reward[2];
-                for (int a=0;a<2;++a) {
-                    Vec draw = sample_mvn3(theta_hat[a], Sigma_hat[a], rng);
-                    samp_reward[a] = xP[0]*draw[0] + xP[1]*draw[1] + xP[2]*draw[2];
-                }
-                a_sel = (samp_reward[1] > samp_reward[0]) ? 1 : 0;
-            }
-            double mean_r = expected_reward(env,i,t,a_sel);
-            double r = mean_r + sigma_r*nd(rng);
-            update_state3(state[a_sel], xP, r);
-            total_regret += best_expected(env,i,t) - mean_r;
-        }
-    }
-    return total_regret / n;
-}
-
+// ---------------- Pooled Thompson Sampling ----------------
 // double pooled_ts(int T, int n, const Env& env, double sigma_r, double lam,
-//     const Vec& mu_prior2, std::mt19937_64& rng) {
-//     std::vector<RidgeState2> state(2);
-//     for (int a = 0; a < 2; ++a) init_state2(state[a]);
+//                  const Vec& mu_prior3, std::mt19937_64& rng) {
+//     std::vector<RidgeState3> state(2);
+//     for (int a=0;a<2;++a) init_state3(state[a]);
 
 //     double total_regret = 0.0;
-//     std::normal_distribution<double> nd(0.0, 1.0);
+//     std::uniform_int_distribution<int> ud(0,1);
+//     std::normal_distribution<double> nd(0.0,1.0);
 
-//     for (int t = 0; t < T; ++t) {
-//         Vec theta_hat[2];
-//         M2 Sigma_hat[2];
-
-//         for (int a = 0; a < 2; ++a) {
-//             ridge_estimate2(state[a], lam, mu_prior2, theta_hat[a], Sigma_hat[a]);
+//     for (int t=0;t<T;++t) {
+//         Vec theta_hat[2]; M3 Sigma_hat[2]; bool ready[2];
+//         for (int a=0;a<2;++a) {
+//             ridge_estimate3(state[a], lam, mu_prior3, theta_hat[a], Sigma_hat[a]);
+//             ready[a] = state[a].n_obs > 0;
 //         }
-
-//         for (int i = 0; i < n; ++i) {
-//             Vec xL = {1.0, (double)env.state[i][t]};
-
-//             double samp_reward[2];
-//             for (int a = 0; a < 2; ++a) {
-//                 Vec draw = sample_mvn2(theta_hat[a], Sigma_hat[a], rng);
-//                 samp_reward[a] = xL[0] * draw[0] + xL[1] * draw[1];
+//         for (int i=0;i<n;++i) {
+//             Vec xP = {1.0, (double)env.context[i], (double)env.state[i][t]};
+//             int a_sel;
+//             if (!ready[0] || !ready[1]) {
+//                 a_sel = ud(rng);
+//             } else {
+//                 double samp_reward[2];
+//                 for (int a=0;a<2;++a) {
+//                     Vec draw = sample_mvn3(theta_hat[a], Sigma_hat[a], rng);
+//                     samp_reward[a] = xP[0]*draw[0] + xP[1]*draw[1] + xP[2]*draw[2];
+//                 }
+//                 a_sel = (samp_reward[1] > samp_reward[0]) ? 1 : 0;
 //             }
-
-//             int a_sel = (samp_reward[1] > samp_reward[0]) ? 1 : 0;
-
-//             double mean_r = expected_reward(env, i, t, a_sel);
-//             double r = mean_r + sigma_r * nd(rng);
-
-//             update_state2(state[a_sel], xL, r);
-//             total_regret += best_expected(env, i, t) - mean_r;
+//             double mean_r = expected_reward(env,i,t,a_sel);
+//             double r = mean_r + sigma_r*nd(rng);
+//             update_state3(state[a_sel], xP, r);
+//             total_regret += best_expected(env,i,t) - mean_r;
 //         }
 //     }
-
 //     return total_regret / n;
 // }
+
+double pooled_ts(int T, int n, const Env& env, double sigma_r, double lam,
+    const Vec& mu_prior2, std::mt19937_64& rng) {
+    std::vector<RidgeState2> state(2);
+    for (int a = 0; a < 2; ++a) init_state2(state[a]);
+
+    double total_regret = 0.0;
+    std::normal_distribution<double> nd(0.0, 1.0);
+
+    for (int t = 0; t < T; ++t) {
+        Vec theta_hat[2];
+        M2 Sigma_hat[2];
+
+        for (int a = 0; a < 2; ++a) {
+            ridge_estimate2(state[a], lam, mu_prior2, theta_hat[a], Sigma_hat[a]);
+        }
+
+        for (int i = 0; i < n; ++i) {
+            Vec xL = {1.0, (double)env.state[i][t]};
+
+            double samp_reward[2];
+            for (int a = 0; a < 2; ++a) {
+                Vec draw = sample_mvn2(theta_hat[a], Sigma_hat[a], rng);
+                samp_reward[a] = xL[0] * draw[0] + xL[1] * draw[1];
+            }
+
+            int a_sel = (samp_reward[1] > samp_reward[0]) ? 1 : 0;
+
+            double mean_r = expected_reward(env, i, t, a_sel);
+            double r = mean_r + sigma_r * nd(rng);
+
+            update_state2(state[a_sel], xL, r);
+            total_regret += best_expected(env, i, t) - mean_r;
+        }
+    }
+
+    return total_regret / n;
+}
 
 // ---------------- Empirical Bayes ----------------
 double empirical_bayes(int T, int n, const Env& env, double sigma_r, double lam,
@@ -551,8 +551,8 @@ int main() {
             double reg_u = unpooled_ts(T, n, env, sigma_r, lam, mu_prior2, rng_u);
 
             std::mt19937_64 rng_p(r + 3000 + ti*10000);
-            double reg_p = pooled_ts(T, n, env, sigma_r, lam, mu_prior3, rng_p);
-            // double reg_p = pooled_ts(T, n, env, sigma_r, lam, mu_prior2, rng_p);
+            // double reg_p = pooled_ts(T, n, env, sigma_r, lam, mu_prior3, rng_p);
+            double reg_p = pooled_ts(T, n, env, sigma_r, lam, mu_prior2, rng_p);
 
             std::mt19937_64 rng_e(r + 4000 + ti*10000);
             double run_shrinkage = 0.0;
