@@ -305,7 +305,7 @@ double unpooled_ts(int T, int n, const Env& env, double sigma_r, double lam,
     return total_regret / n;
 }
 
----------------- Pooled Thompson Sampling ----------------
+// ---------------- Pooled Thompson Sampling ----------------
 double pooled_ts(int T, int n, const Env& env, double sigma_r, double lam,
                  const Vec& mu_prior3, std::mt19937_64& rng) {
     std::vector<RidgeState3> state(2);
@@ -531,7 +531,7 @@ int main() {
     for (int Tv=1; Tv<=1001; Tv+=100) T_values.push_back(Tv);
     int nT = T_values.size();
 
-    std::ofstream out("testing_code/061226_1.csv");
+    std::ofstream out("testing_code/061226_2.csv");
     out << "T,mean_unpooled,se_unpooled,mean_pooled,se_pooled,"
         << "mean_eb,se_eb,final_shrinkage,winner\n";
 
@@ -597,6 +597,6 @@ int main() {
     }
 
     out.close();
-    std::cout << "\nDone! Results written to testing_code/061226_1.csv\n";
+    std::cout << "\nDone! Results written to testing_code/061226_2.csv\n";
     return 0;
 }

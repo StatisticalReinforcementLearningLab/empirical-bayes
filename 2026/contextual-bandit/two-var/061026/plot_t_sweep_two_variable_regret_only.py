@@ -63,8 +63,8 @@ def main():
     plt.rcParams['ytick.labelsize'] = 11
 
     # ---------- file paths ----------
-    csv_path = "testing_code/061226_1.csv"
-    output_path = "testing_code/061226_1.png"
+    csv_path = "testing_code/061226_2.csv"
+    output_path = "testing_code/061226_2.png"
 
     if not os.path.exists(csv_path):
         raise FileNotFoundError(
@@ -114,6 +114,7 @@ def main():
             [0.00, 0.00, 0.50],
         ]),
     }
+
     sigma_r = 0.5
     lam = 1e-6
 
