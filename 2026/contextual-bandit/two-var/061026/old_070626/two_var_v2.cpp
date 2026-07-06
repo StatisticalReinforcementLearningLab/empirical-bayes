@@ -164,6 +164,196 @@ inline double best_expected(const Env& env, int i, int t) {
     return std::max(expected_reward(env,i,t,0), expected_reward(env,i,t,1));
 }
 
+
+ // TESTING THE POLICY!!!
+
+inline double treatment_effect_cell(const Env& env, int i, int c, int s) {
+    return (env.theta[i][1][0] - env.theta[i][0][0])
+         + (env.theta[i][1][1] - env.theta[i][0][1]) * c
+         + (env.theta[i][1][2] - env.theta[i][0][2]) * s;
+}
+
+inline int optimal_action_cell(const Env& env, int i, int c, int s) {
+    double tau = treatment_effect_cell(env, i, c, s);
+    return (tau >= 0.0) ? 1 : 0;
+}
+
+inline double safe_div(double num, double den) {
+    return (den > 0.0) ? num / den : 0.0;
+}
+
+inline double sd_from_sums(double sum, double sumsq, int n) {
+    if (n <= 1) return 0.0;
+    double mean = sum / n;
+    double var = sumsq / n - mean * mean;
+    return std::sqrt(std::max(0.0, var));
+}
+
+
+void write_optimal_action_header(std::ofstream& out) {
+    out << "conjecture,run,T,c,s,"
+        << "mean_tau_counterfactual,sd_tau_counterfactual,frac_action1_counterfactual,"
+        << "n_actual_context,mean_tau_actual,sd_tau_actual,frac_action1_actual,"
+        << "obs_count,obs_freq,frac_action1_observed,"
+        << "regret_always1_observed,regret_always0_observed\n";
+}
+
+void write_optimal_action_diagnostics(std::ofstream& out,
+                                      const std::string& conjecture,
+                                      int run,
+                                      int T,
+                                      const Env& env) {
+    int n = (int)env.theta.size();
+
+    for (int c = 0; c <= 1; ++c) {
+        for (int s = 0; s <= 1; ++s) {
+
+            // Counterfactual summary:
+            // Evaluate every participant's theta under this cell (c,s),
+            // regardless of their realized context.
+            double cf_sum_tau = 0.0;
+            double cf_sumsq_tau = 0.0;
+            int cf_action1 = 0;
+
+            for (int i = 0; i < n; ++i) {
+                double tau = treatment_effect_cell(env, i, c, s);
+                cf_sum_tau += tau;
+                cf_sumsq_tau += tau * tau;
+                if (tau >= 0.0) cf_action1++;
+            }
+
+            double cf_mean_tau = cf_sum_tau / n;
+            double cf_sd_tau = sd_from_sums(cf_sum_tau, cf_sumsq_tau, n);
+            double cf_frac_action1 = (double)cf_action1 / n;
+
+            // Actual-context summary:
+            // Only participants whose actual c_i equals this c.
+            double act_sum_tau = 0.0;
+            double act_sumsq_tau = 0.0;
+            int act_n = 0;
+            int act_action1 = 0;
+
+            for (int i = 0; i < n; ++i) {
+                if (env.context[i] != c) continue;
+
+                double tau = treatment_effect_cell(env, i, c, s);
+                act_sum_tau += tau;
+                act_sumsq_tau += tau * tau;
+                act_n++;
+                if (tau >= 0.0) act_action1++;
+            }
+
+            double act_mean_tau = safe_div(act_sum_tau, act_n);
+            double act_sd_tau = sd_from_sums(act_sum_tau, act_sumsq_tau, act_n);
+            double act_frac_action1 = safe_div(act_action1, act_n);
+
+            // Observed-cell summary:
+            // Counts actual (c_i, s_{i,t}) pairs in the generated trajectory.
+            int obs_count = 0;
+            int obs_action1 = 0;
+            double regret_always1 = 0.0;
+            double regret_always0 = 0.0;
+
+            for (int i = 0; i < n; ++i) {
+                if (env.context[i] != c) continue;
+
+                for (int t = 0; t < T; ++t) {
+                    if (env.state[i][t] != s) continue;
+
+                    double tau = treatment_effect_cell(env, i, c, s);
+
+                    obs_count++;
+                    if (tau >= 0.0) obs_action1++;
+
+                    // If always choose action 1:
+                    // regret is positive only when action 0 is truly better.
+                    regret_always1 += std::max(0.0, -tau);
+
+                    // If always choose action 0:
+                    // regret is positive only when action 1 is truly better.
+                    regret_always0 += std::max(0.0, tau);
+                }
+            }
+
+            double obs_freq = safe_div(obs_count, n * T);
+            double obs_frac_action1 = safe_div(obs_action1, obs_count);
+            double obs_regret_always1 = safe_div(regret_always1, obs_count);
+            double obs_regret_always0 = safe_div(regret_always0, obs_count);
+
+            out << conjecture << ','
+                << run << ','
+                << T << ','
+                << c << ','
+                << s << ','
+                << cf_mean_tau << ','
+                << cf_sd_tau << ','
+                << cf_frac_action1 << ','
+                << act_n << ','
+                << act_mean_tau << ','
+                << act_sd_tau << ','
+                << act_frac_action1 << ','
+                << obs_count << ','
+                << obs_freq << ','
+                << obs_frac_action1 << ','
+                << obs_regret_always1 << ','
+                << obs_regret_always0 << '\n';
+        }
+    }
+}
+
+
+void write_policy_pattern_header(std::ofstream& out) {
+    out << "conjecture,run,T,c,n_context,"
+        << "frac_opt_00,frac_opt_01,frac_opt_10,frac_opt_11,"
+        << "frac_state_dependent\n";
+}
+
+void write_policy_pattern_diagnostics(std::ofstream& out,
+                                      const std::string& conjecture,
+                                      int run,
+                                      int T,
+                                      const Env& env) {
+    int n = (int)env.theta.size();
+
+    for (int c = 0; c <= 1; ++c) {
+        int n_context = 0;
+        int pattern_count[4] = {0, 0, 0, 0};
+
+        for (int i = 0; i < n; ++i) {
+            if (env.context[i] != c) continue;
+
+            int a_s0 = optimal_action_cell(env, i, c, 0);
+            int a_s1 = optimal_action_cell(env, i, c, 1);
+
+            int pattern = 2 * a_s0 + a_s1;
+            pattern_count[pattern]++;
+            n_context++;
+        }
+
+        double frac_00 = safe_div(pattern_count[0], n_context); // action 0 in both states
+        double frac_01 = safe_div(pattern_count[1], n_context); // action 0 at s=0, action 1 at s=1
+        double frac_10 = safe_div(pattern_count[2], n_context); // action 1 at s=0, action 0 at s=1
+        double frac_11 = safe_div(pattern_count[3], n_context); // action 1 in both states
+
+        double frac_state_dependent = frac_01 + frac_10;
+
+        out << conjecture << ','
+            << run << ','
+            << T << ','
+            << c << ','
+            << n_context << ','
+            << frac_00 << ','
+            << frac_01 << ','
+            << frac_10 << ','
+            << frac_11 << ','
+            << frac_state_dependent << '\n';
+    }
+}
+
+
+
+
+
 // ---------------- 2D ridge state: unpooled individual learning ----------------
 // Individual learner uses x^L_{i,t} = (1, s_{i,t}).
 // The intercept estimates theta_{i,a,0} + theta_{i,a,1} c_i.
@@ -507,7 +697,7 @@ double empirical_bayes(int T, int n, const Env& env, double sigma_r, double lam,
 
 // ---------------- Main ----------------
 int main() {
-    int n = 30;
+    int n = 100;
     int runs = 20;
     double sigma_r = 0.5;
     double lam = 1e-6;
@@ -528,14 +718,26 @@ int main() {
     Vec mu_prior3 = {0.0, 0.0, 0.0};  // population/pooled prior for theta=(intercept,c,s)
 
     IVec T_values;
-    for (int Tv=1; Tv<=1001; Tv+=100) T_values.push_back(Tv);
+    for (int Tv=1; Tv<=201; Tv+=10) T_values.push_back(Tv);
     int nT = T_values.size();
 
-    std::ofstream out("testing_code/061226_1.csv");
+    std::ofstream out("conjectures_v2/TESTING_POLICY.csv");
     out << "T,mean_unpooled,se_unpooled,mean_pooled,se_pooled,"
         << "mean_eb,se_eb,final_shrinkage,winner\n";
 
     std::cout << "Sweeping " << nT << " T values (two-variable environment)...\n";
+
+
+    // POLICY FILES 
+
+    std::string conjecture_name = "conj1";
+
+    std::ofstream oracle_out("testing_code/conj1_oracle_cells.csv");
+    write_optimal_action_header(oracle_out);
+
+    std::ofstream pattern_out("testing_code/conj1_oracle_patterns.csv");
+    write_policy_pattern_header(pattern_out);
+
 
     for (int ti=0; ti<nT; ++ti) {
         int T = T_values[ti];
@@ -546,6 +748,9 @@ int main() {
         for (int r=0; r<runs; ++r) {
             std::mt19937_64 rng_env(r + 1000 + ti*10000);
             Env env = set_environment(n, T, mu_a, Sigma_a, p_context, p_state, rng_env);
+
+            write_optimal_action_diagnostics(oracle_out, conjecture_name, r, T, env);
+            write_policy_pattern_diagnostics(pattern_out, conjecture_name, r, T, env);
 
             std::mt19937_64 rng_u(r + 2000 + ti*10000);
             double reg_u = unpooled_ts(T, n, env, sigma_r, lam, mu_prior2, rng_u);
@@ -597,6 +802,12 @@ int main() {
     }
 
     out.close();
-    std::cout << "\nDone! Results written to testing_code/061226_1.csv\n";
+
+
+    oracle_out.close();
+    pattern_out.close();
+
+
+    std::cout << "\nDone! Results written to conjectures_v2/TESTING_POLICY.csv\n";
     return 0;
 }

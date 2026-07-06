@@ -92,11 +92,48 @@ inline M3 inv3(M3 A, double jitter=1e-10) {
 }
 
 inline M3 project_psd3(const M3& A, double floor=1e-8) {
-    // Simple stabilizer: symmetrize and floor only the diagonal. This is enough
-    // for the diagonal simulation environments below and keeps code compact.
+    // Symmetrize, then project to PSD by flooring eigenvalues (Jacobi eigensolver
+    // for symmetric 3x3). Diagonal-only flooring is NOT enough: a matrix can have
+    // positive diagonal yet be indefinite (e.g. large off-diagonal state-intercept
+    // covariance), which would make inv3 produce negative-diagonal garbage.
+    double S[3][3];
+    for (int i=0;i<3;++i) for (int j=0;j<3;++j) S[i][j] = 0.5*(A.m[i][j]+A.m[j][i]);
+    // Jacobi eigen-decomposition: S = V diag(w) V^T
+    double V[3][3] = {{1,0,0},{0,1,0},{0,0,1}};
+    for (int sweep=0; sweep<50; ++sweep) {
+        // find largest off-diagonal
+        int p=0,q=1; double mx=std::abs(S[0][1]);
+        if (std::abs(S[0][2])>mx){mx=std::abs(S[0][2]);p=0;q=2;}
+        if (std::abs(S[1][2])>mx){mx=std::abs(S[1][2]);p=1;q=2;}
+        if (mx < 1e-15) break;
+        double app=S[p][p], aqq=S[q][q], apq=S[p][q];
+        double phi = 0.5*std::atan2(2*apq, aqq-app);
+        double cphi=std::cos(phi), sphi=std::sin(phi);
+        for (int k=0;k<3;++k) {
+            double skp=S[k][p], skq=S[k][q];
+            S[k][p]=cphi*skp - sphi*skq;
+            S[k][q]=sphi*skp + cphi*skq;
+        }
+        for (int k=0;k<3;++k) {
+            double spk=S[p][k], sqk=S[q][k];
+            S[p][k]=cphi*spk - sphi*sqk;
+            S[q][k]=sphi*spk + cphi*sqk;
+        }
+        for (int k=0;k<3;++k) {
+            double vkp=V[k][p], vkq=V[k][q];
+            V[k][p]=cphi*vkp - sphi*vkq;
+            V[k][q]=sphi*vkp + cphi*vkq;
+        }
+    }
+    double w[3] = {S[0][0], S[1][1], S[2][2]};
+    for (int k=0;k<3;++k) if (w[k] < floor) w[k] = floor;   // floor eigenvalues
+    // reconstruct B = V diag(w) V^T
     M3 B{};
-    for (int i=0;i<3;++i) for (int j=0;j<3;++j) B.m[i][j] = 0.5*(A.m[i][j]+A.m[j][i]);
-    for (int i=0;i<3;++i) B.m[i][i] = std::max(B.m[i][i], floor);
+    for (int i=0;i<3;++i) for (int j=0;j<3;++j) {
+        double s=0.0;
+        for (int k=0;k<3;++k) s += V[i][k]*w[k]*V[j][k];
+        B.m[i][j]=s;
+    }
     return B;
 }
 
@@ -440,7 +477,18 @@ double empirical_bayes(int T, int n, const Env& env, double sigma_r, double lam,
                     second = add3(second, add3(post_cov, outer3(post_mean)));
                 }
                 for (int k=0;k<3;++k) mu_new[k] /= nn;
+
+                // CONSTRAINING COVARIANCE 070626
+
+                // M3 Sigma_new = sub3(scale3(second, 1.0/nn), outer3(mu_new));
+                // Sigma_new = project_psd3(Sigma_new, 1e-8);
+                
                 M3 Sigma_new = sub3(scale3(second, 1.0/nn), outer3(mu_new));
+                // c_i constant within participant => intercept-context covariance
+                // Sigma_{a,01} not identifiable (only 2*Sigma01+Sigma11 seen).
+                // Constrain Sigma_{a,01}=Sigma_{a,10}=0, as in time-invariant EB (Sec 3).
+                Sigma_new.m[0][1] = 0.0;
+                Sigma_new.m[1][0] = 0.0;
                 Sigma_new = project_psd3(Sigma_new, 1e-8);
 
                 double delta = 0.0;
@@ -472,9 +520,20 @@ double empirical_bayes(int T, int n, const Env& env, double sigma_r, double lam,
                     M2 Si_inv = inv2(Sigma_hat[i][a]);
 
                     // shrinkage ratio! 
+                    // SHRINKAGE RATIO dimensions corrected 070626
+                    // if (t == T-1) {
+                    //     double tr_pop = Sp_inv[a].m[0][0] + Sp_inv[a].m[1][1] + Sp_inv[a].m[2][2];
+                    //     double tr_ind = Si_inv.a + Si_inv.d;
+                    //     step_shrinkage_sum += tr_ind / std::max(tr_pop + tr_ind, 1e-20);
+                    //     step_shrinkage_count++;
+                    // }
+
                     if (t == T-1) {
+                        // Lift individual precision to 3D via D_i so it lives in the
+                        // same space as the 3x3 population precision (see write-up).
+                        M3 Si_inv3 = D_Si_inv_Dt(c, Si_inv);
                         double tr_pop = Sp_inv[a].m[0][0] + Sp_inv[a].m[1][1] + Sp_inv[a].m[2][2];
-                        double tr_ind = Si_inv.a + Si_inv.d;
+                        double tr_ind = Si_inv3.m[0][0] + Si_inv3.m[1][1] + Si_inv3.m[2][2];
                         step_shrinkage_sum += tr_ind / std::max(tr_pop + tr_ind, 1e-20);
                         step_shrinkage_count++;
                     }
@@ -505,10 +564,137 @@ double empirical_bayes(int T, int n, const Env& env, double sigma_r, double lam,
     return total_regret / n;
 }
 
+// ---------------- Hierarchical (Partial-Pooling) Thompson Sampling ----------------
+// Full 3D design x = (1, c_i, s_{i,t}) fit per participant on raw data.
+// Population hyperprior theta_{i,a} ~ N(mu_a, Sigma_a) estimated by EM.
+// Intercept-context covariance constrained to 0 (identifiability, Sec 3 / 1.3.4).
+double hierarchical_ts(int T, int n, const Env& env, double sigma_r, double lam,
+                       const Vec& mu_prior3, std::mt19937_64& rng) {
+    // Per-participant, per-arm raw-data accumulator (full 3D design).
+    std::vector<std::vector<RidgeState3>> state(n, std::vector<RidgeState3>(2));
+    for (int i=0;i<n;++i) for (int a=0;a<2;++a) init_state3(state[i][a]);
+
+    // Population hyperparameters, persisted across t (warm-start).
+    Vec mu_pop[2] = {mu_prior3, mu_prior3};
+    M3 Sigma_pop[2] = {eye3(1.0), eye3(1.0)};
+
+    double total_regret = 0.0;
+    std::uniform_int_distribution<int> ud(0,1);
+    std::normal_distribution<double> nd(0.0,1.0);
+
+    const int MAX_ITER = 50;
+    const double TOL = 1e-5;
+
+    for (int t=0;t<T;++t) {
+        // Per-participant residual-variance estimates sigma^2, as in Sec 1.2
+        // (n_obs - 3 dof, matching ridge_estimate3), plus data flags.
+        std::vector<std::vector<double>> sigma2(n, std::vector<double>(2, 1.0));
+        std::vector<std::vector<bool>> has_data(n, std::vector<bool>(2,false));
+        for (int i=0;i<n;++i) for (int a=0;a<2;++a) {
+            const RidgeState3& st = state[i][a];
+            has_data[i][a] = st.n_obs > 0;
+            if (st.n_obs > 3) {
+                M3 G = st.XtX; for (int k=0;k<3;++k) G.m[k][k] += lam;
+                Vec th = matvec3(inv3(G), st.Xty);
+                double rss = 0.0;
+                for (int j=0;j<st.n_obs;++j) {
+                    double pred = st.x_hist[j][0]*th[0]
+                                + st.x_hist[j][1]*th[1]
+                                + st.x_hist[j][2]*th[2];
+                    double e = st.r_hist[j] - pred;
+                    rss += e*e;
+                }
+                sigma2[i][a] = std::max(rss/(st.n_obs-3), 1e-8);
+            }
+        }
+
+        // Step 1: EM over population hyperparameters (per arm), in 3D theta space.
+        for (int a=0;a<2;++a) {
+            int nn = 0;
+            for (int i=0;i<n;++i) if (has_data[i][a]) nn++;
+            if (nn == 0) continue;
+
+            Vec mu_cur = mu_pop[a];
+            M3 Sigma_cur = Sigma_pop[a];
+
+            for (int iter=0; iter<MAX_ITER; ++iter) {
+                M3 Sp_inv = inv3(Sigma_cur);
+                Vec mu_new = {0.0,0.0,0.0};
+                M3 second = zero3();
+
+                for (int i=0;i<n;++i) {
+                    if (!has_data[i][a]) continue;
+                    const RidgeState3& st = state[i][a];
+                    double inv_s2 = 1.0/sigma2[i][a];
+                    // posterior precision = Sigma_a^-1 + (1/sigma2) XtX
+                    M3 precision = Sp_inv;
+                    for (int p=0;p<3;++p) for (int q=0;q<3;++q)
+                        precision.m[p][q] += inv_s2*st.XtX.m[p][q];
+                    M3 post_cov = inv3(precision);
+                    // rhs = Sigma_a^-1 mu_a + (1/sigma2) Xty
+                    Vec rhs = matvec3(Sp_inv, mu_cur);
+                    for (int k=0;k<3;++k) rhs[k] += inv_s2*st.Xty[k];
+                    Vec post_mean = matvec3(post_cov, rhs);
+
+                    for (int k=0;k<3;++k) mu_new[k] += post_mean[k];
+                    second = add3(second, add3(post_cov, outer3(post_mean)));
+                }
+                for (int k=0;k<3;++k) mu_new[k] /= nn;
+                M3 Sigma_new = sub3(scale3(second, 1.0/nn), outer3(mu_new));
+                // c_i constant within participant => intercept-context covariance
+                // Sigma_{a,01} not identifiable; constrain to 0 (Sec 3 / 1.3.4).
+                Sigma_new.m[0][1] = 0.0;
+                Sigma_new.m[1][0] = 0.0;
+                Sigma_new = project_psd3(Sigma_new, 1e-8);
+
+                double delta = 0.0;
+                for (int k=0;k<3;++k) delta += std::abs(mu_new[k]-mu_cur[k]);
+                for (int k=0;k<3;++k) delta += std::abs(Sigma_new.m[k][k]-Sigma_cur.m[k][k]);
+                mu_cur = mu_new;
+                Sigma_cur = Sigma_new;
+                if (delta < TOL) break;
+            }
+            mu_pop[a] = mu_cur;
+            Sigma_pop[a] = Sigma_cur;
+        }
+
+        // Step 2: action selection by sampling from each participant's posterior.
+        M3 Sp_inv[2] = {inv3(Sigma_pop[0]), inv3(Sigma_pop[1])};
+        for (int i=0;i<n;++i) {
+            Vec x = {1.0, (double)env.context[i], (double)env.state[i][t]};
+            int a_sel;
+            if (!has_data[i][0] || !has_data[i][1]) {
+                a_sel = ud(rng);
+            } else {
+                double samp_reward[2];
+                for (int a=0;a<2;++a) {
+                    const RidgeState3& st = state[i][a];
+                    double inv_s2 = 1.0/sigma2[i][a];
+                    M3 precision = Sp_inv[a];
+                    for (int p=0;p<3;++p) for (int q=0;q<3;++q)
+                        precision.m[p][q] += inv_s2*st.XtX.m[p][q];
+                    M3 post_cov = inv3(precision);
+                    Vec rhs = matvec3(Sp_inv[a], mu_pop[a]);
+                    for (int k=0;k<3;++k) rhs[k] += inv_s2*st.Xty[k];
+                    Vec post_mean = matvec3(post_cov, rhs);
+                    Vec draw = sample_mvn3(post_mean, post_cov, rng);
+                    samp_reward[a] = x[0]*draw[0] + x[1]*draw[1] + x[2]*draw[2];
+                }
+                a_sel = (samp_reward[1] > samp_reward[0]) ? 1 : 0;
+            }
+            double mean_r = expected_reward(env,i,t,a_sel);
+            double r = mean_r + sigma_r*nd(rng);
+            update_state3(state[i][a_sel], x, r);
+            total_regret += best_expected(env,i,t) - mean_r;
+        }
+    }
+    return total_regret / n;
+}
+
 // ---------------- Main ----------------
 int main() {
-    int n = 30;
-    int runs = 20;
+    int n = 10;
+    int runs = 200;
     double sigma_r = 0.5;
     double lam = 1e-6;
     double p_context = 0.5;
@@ -528,19 +714,19 @@ int main() {
     Vec mu_prior3 = {0.0, 0.0, 0.0};  // population/pooled prior for theta=(intercept,c,s)
 
     IVec T_values;
-    for (int Tv=1; Tv<=1001; Tv+=100) T_values.push_back(Tv);
+    for (int Tv=1; Tv<=25; Tv+=1) T_values.push_back(Tv);
     int nT = T_values.size();
 
-    std::ofstream out("testing_code/061226_2.csv");
+    std::ofstream out("testing_070626/test1_a.csv");
     out << "T,mean_unpooled,se_unpooled,mean_pooled,se_pooled,"
-        << "mean_eb,se_eb,final_shrinkage,winner\n";
+        << "mean_eb,se_eb,mean_hier,se_hier,final_shrinkage,winner\n";
 
     std::cout << "Sweeping " << nT << " T values (two-variable environment)...\n";
 
     for (int ti=0; ti<nT; ++ti) {
         int T = T_values[ti];
-        double sum_u=0, sum_p=0, sum_e=0;
-        double ssq_u=0, ssq_p=0, ssq_e=0;
+        double sum_u=0, sum_p=0, sum_e=0, sum_h=0;
+        double ssq_u=0, ssq_p=0, ssq_e=0, ssq_h=0;
         double sum_shrinkage=0.0;
 
         for (int r=0; r<runs; ++r) {
@@ -559,9 +745,13 @@ int main() {
             double reg_e = empirical_bayes(T, n, env, sigma_r, lam,
                                            mu_prior2, mu_prior3, rng_e, run_shrinkage);
 
+            std::mt19937_64 rng_h(r + 5000 + ti*10000);
+            double reg_h = hierarchical_ts(T, n, env, sigma_r, lam, mu_prior3, rng_h);
+
             sum_u += reg_u; ssq_u += reg_u*reg_u;
             sum_p += reg_p; ssq_p += reg_p*reg_p;
             sum_e += reg_e; ssq_e += reg_e*reg_e;
+            sum_h += reg_h; ssq_h += reg_h*reg_h;
             sum_shrinkage += run_shrinkage;
         }
 
@@ -574,29 +764,33 @@ int main() {
         auto [mu_u, se_u] = mean_se(sum_u, ssq_u);
         auto [mu_p, se_p] = mean_se(sum_p, ssq_p);
         auto [mu_e, se_e] = mean_se(sum_e, ssq_e);
+        auto [mu_h, se_h] = mean_se(sum_h, ssq_h);
         double avg_shrinkage = sum_shrinkage / runs;
 
         std::string winner;
-        double m = std::min({mu_u, mu_p, mu_e});
+        double m = std::min({mu_u, mu_p, mu_e, mu_h});
         if      (mu_u == m) winner="Unpooled";
         else if (mu_p == m) winner="Pooled";
-        else                winner="EB";
+        else if (mu_e == m) winner="EB";
+        else                winner="Hierarchical";
 
         out << std::fixed << std::setprecision(4)
             << T << ',' << mu_u << ',' << se_u << ','
             << mu_p << ',' << se_p << ','
             << mu_e << ',' << se_e << ','
+            << mu_h << ',' << se_h << ','
             << avg_shrinkage << ',' << winner << '\n';
 
         std::cout << "T=" << std::fixed << std::setprecision(2) << T
                   << "  U=" << std::setprecision(3) << mu_u
                   << "  P=" << mu_p
                   << "  EB=" << mu_e
+                  << "  H=" << mu_h
                   << "  shrinkage=" << avg_shrinkage
                   << "  winner=" << winner << "\n";
     }
 
     out.close();
-    std::cout << "\nDone! Results written to testing_code/061226_2.csv\n";
+    std::cout << "\nDone! Results written to testing_070626/test1_a.csv\n";
     return 0;
 }

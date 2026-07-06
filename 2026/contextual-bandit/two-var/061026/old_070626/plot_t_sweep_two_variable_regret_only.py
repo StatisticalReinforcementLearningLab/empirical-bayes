@@ -63,8 +63,8 @@ def main():
     plt.rcParams['ytick.labelsize'] = 11
 
     # ---------- file paths ----------
-    csv_path = "testing_code/061226_2.csv"
-    output_path = "testing_code/061226_2.png"
+    csv_path = "conjectures_v2/TESTING_POLICY.csv"
+    output_path = "conjectures_v2/TESTING_POLICY.png"
 
     if not os.path.exists(csv_path):
         raise FileNotFoundError(
@@ -93,7 +93,7 @@ def main():
 
     # ---------- single source of truth for environment parameters ----------
     # Keep these synchronized with t_sweep_two_variable.cpp.
-    n = 30
+    n = 100
     runs_per_T = 20
     p_context = 0.5
     p_state = 0.5
