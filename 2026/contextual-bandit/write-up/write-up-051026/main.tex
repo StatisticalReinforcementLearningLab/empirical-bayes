@@ -1,0 +1,92 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+
+ 
+\title{Handout: Thompson Sampling with Gaussian Bayesian Linear Regression}
+\author{susan murphy}
+\date{November 2025}
+
+\begin{document}
+
+\maketitle
+
+\noindent Introduction
+
+Thompson Sampling (TS) is a classic Bayesian approach to the exploration-exploitation trade-off. The core idea is to maintain a posterior distribution over the parameters of the model and "sample" a version of the world at each time step. We then act optimally according to that sample.
+In the context of Contextual Bandits, we assume the reward $y_t$ for taking an action $a_t$ given context $x_t$ follows a linear relationship in terms of feature  vector, $f_t=f(x_t, a_t)$.  An example feature vector when $x_t$ is a scalar is $f(x_t, a_t)= \{1, x_t, a_t, x_ta_t\}^T$.
+
+$$y_t = f(x_t, a_t)^T \beta + \epsilon_t, \quad \epsilon_t \sim N(0, \sigma^2)$$\\
+
+\noindent The Model Components
+\begin{enumerate}
+    \item The Likelihood: We assume the rewards are normally distributed around the linear predictor $f^T \beta$ with a known noise variance $\sigma^2$.
+    \item The Prior: We place a Gaussian prior on the coefficients $\beta$:
+$$\beta \sim N(\mu_0, \Sigma_0)$$
+$\mu_0$: Initial guess for the coefficients.
+$\Sigma_0$: Initial uncertainty (often $\lambda I$ if you don't have prior domain knowledge).  
+\item Posterior Update Rules
+Given a history of observations $\mathcal{D}_t = \{(x_1, a_1, y_1), \dots, (x_t, a_t, y_t)\}$, the posterior distribution $P(\beta | \mathcal{D}_t)$ remains Gaussian, $N(\mu_t, \Sigma_t)$.
+The update equations for the parameters are:
+
+$$\Sigma_t = (\Sigma_0^{-1} + \frac{1}{\sigma^2} \sum_{j=1}^t f_j f_j^T)^{-1}$$
+
+$$\mu_t = \Sigma_t (\Sigma_0^{-1} \mu_0 + \frac{1}{\sigma^2} \sum_{j=1}^t f_j y_j)$$
+
+Note: If we assume a spherical prior, i.e., $\Sigma_0 = \lambda I$ and $\mu_0 = 0$, this is mathematically equivalent to the weights used in Ridge Regression, but with a full probabilistic interpretation.
+\item The Classical Thompson Sampling Algorithm
+
+\noindent Inputs:  $\sigma^2$, $\mu_0$, $\Sigma_0$
+
+\noindent For each time step $t = 1, 2, \dots, T$:
+\begin{enumerate}
+    \item Observe the available contexts $x_{t}$ ; form feature vector, $f(x_t,a)$ for all possible actions $a$.
+    \item Sample a parameter vector $\tilde{\beta}_t$ from the current posterior:
+$$\tilde{\beta}_t \sim N(\mu_{t-1}, \Sigma_{t-1})$$
+\item Predict the expected reward for each action using the sampled $\tilde{\beta}_t$:
+$$\hat{y}_{t, a} = f({x_t, a})^T \tilde{\beta}_t$$
+\item Select the action $a_t$ that maximizes the predicted reward:
+$$a_t = \arg\max_a \hat{y}_{t, a}$$
+\item Observe the actual reward $y_t$.
+\item Update the posterior mean and variance, $\mu_t$ and $\Sigma_t$ using the new data point $(f({x_t, a_t}), y_t)$.
+\end{enumerate}
+\end{enumerate}
+
+In the above the learning algorithm is line (f); the action selection strategy is lines (b) (c),(d)
+Lines (a) and (e)  represent interactions with the environment (persons or group of persons in our case).
+
+
+
+
+
+In classical (unpooled) Thompson-Sampling the above algorithm (both learning algorithm and the action selection strategy) are run separately on each person.   $t$ represents time within a person.  The inputs ($\sigma^2$, $\mu_0$, $\Sigma_0$) to the algorithm can be the same across people or different. \\
+
+In pooled Thompson-Sampling the algorithm is similar.  The posterior update uses observations on all $n$ people. Given a history of observations $\mathcal{D}_t = \{(x_{i,j}, y_{i,j})\}_{j=1,..,t; i=1,..,n}$, the posterior distribution $P(\beta | \mathcal{D}_t)$ remains Gaussian, $N(\mu_t, \Sigma_t)$.  
+The posterior variance is:
+$$\Sigma_t = (\Sigma_0^{-1} + \frac{1}{\sigma^2} \sum_{i=1}^n\sum_{j=1}^t f_{i,j} f_{i,j}^T)^{-1}$$
+and the posterior mean is
+$$\mu_t = \Sigma_t (\Sigma_0^{-1} \mu_0 + \frac{1}{\sigma^2} \sum_{i=1}^n\sum_{j=1}^t f_{i,j} y_{i,j}).$$
+Above the feature vector at time $t$ is $f_{i,t}=f(x_{i,t}, a_{i,t})$.\\
+
+ The pooled Thompson Sampling Algorithm
+
+\noindent Inputs:  $\sigma^2$, $\mu_0$, $\Sigma_0$
+
+\noindent For each time step $t = 1, 2, \dots, T$:
+\begin{enumerate}
+    \item Observe the available contexts $x_{i, t}, i=1,..,n$; form feature vector, $f({ x_{i, t}, a})$ for all possible actions $a$.
+    \item For $ i=1,..,n$, sample a parameter vector $\tilde{\beta}_{i,t}$ from the current posterior:
+$$\tilde{\beta}_{i,t} \sim N(\mu_{t-1}, \Sigma_{t-1})$$
+\item For $ i=1,..,n$, predict the expected reward for each action using the sampled $\tilde{\beta}_{i,t}$:
+$$\hat{y}_{i,t, a} = f({ x_{i, t}, a})^T \tilde{\beta}_t$$
+\item For $ i=1,..,n$, select the action $a_{i,t}$ that maximizes the predicted reward:
+$$a_{i,t} = \arg\max_a \hat{y}_{i,t, a}$$
+\item Observe the actual rewards $\{y_{i,t}\}_{i=1,..n}$.
+\item Update the posterior parameters $\mu_t$ and $\Sigma_t$ using the new data point $\{f({ x_{i, t}, a_{i, t}}), y_{i, t}\}_{i=1,,,.n}$.
+\end{enumerate}
+In the above the learning algorithm is line 6.; the action selection strategy is lines 2., 3.,4.
+Lines 1. and 5.  represent interactions with the environment (persons or group of persons in our case).
+
+
+
+
+\end{document}

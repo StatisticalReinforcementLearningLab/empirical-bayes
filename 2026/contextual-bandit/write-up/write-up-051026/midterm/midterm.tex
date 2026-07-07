@@ -1,0 +1,1176 @@
+\documentclass[letterpaper, 9pt]{extarticle}
+\input{preamble}
+\input{format}
+\input{commands}
+\usepackage{newpxmath}
+\usepackage[margin=0.95in]{geometry}
+% \usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\definecolor{softpurple}{HTML}{9C88B9}
+\definecolor{softblue}{HTML}{B8BDDE}
+\usepackage{cancel}
+\usepackage{csquotes}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{indentfirst}
+\usepackage{caption}
+\usepackage{color}
+\usepackage{framed}
+\usepackage{float}
+\usepackage{cleveref}
+\setlength{\parindent}{2em}
+\usepackage[
+backend=biber,
+style=verbose,
+autocite=footnote
+]{biblatex}
+\addbibresource{bib.bib}
+\usepackage{subcaption}
+\usepackage{overpic}
+
+\definecolor{darkblue}{RGB}{13, 39, 61}  % Yankees Blue
+\definecolor{mymediumblue}{RGB}{62, 105, 133}  % Teal Blue
+\definecolor{lightblue}{RGB}{138, 167, 188}  % Pewter Blue
+\definecolor{pastelblue}{RGB}{166, 190, 209}  % Pastel Blue
+\definecolor{columbiablue}{RGB}{205, 215, 223}  % Columbia Blue
+\definecolor{graytext}{RGB}{90, 90, 90}  % Neutral grey for comments
+
+\setlength{\textfloatsep}{10pt}
+\setlength{\floatsep}{8pt}
+\setlength{\intextsep}{8pt}
+
+\definecolor{codebg}{RGB}{248, 248, 248}
+
+\lstset{ 
+  language=C++,
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  numbersep=8pt,
+  backgroundcolor=\color{codebg},
+  showspaces=false,
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=true,
+  captionpos=t,
+  escapeinside={\%*}{*)},
+  commentstyle=\color{gray}\itshape,
+  keywordstyle=\color{softpurple},
+  stringstyle=\color{pastelblue},
+  frame=single,
+  framerule=0pt,
+  rulecolor=\color{codebg},
+  xleftmargin=10pt,
+  xrightmargin=4pt,
+  framexleftmargin=10pt,
+  framexrightmargin=4pt,
+  framextopmargin=4pt,
+  framexbottommargin=4pt,
+  aboveskip=10pt,
+  belowskip=6pt
+}
+
+\renewcommand\lstlistingname{Code}
+% \setcitestyle{square}
+
+\usepackage{tikzsymbols}
+
+\captionsetup[lstlisting]{labelsep=period, labelfont=it, textfont=it}
+
+\captionsetup[figure]{labelsep=period, labelfont=normalfont, textfont=normalfont}
+
+\newcommand{\sam}[1]{
+  {\color{blue} [SAM: {#1}]}
+ }
+ \newcommand{\asl}[1]{
+  {\color{blue} [ASL: {#1}]}
+ }
+
+ \definecolor{nyscolor}{HTML}{a63a47}
+
+\newcommand{\nys}[1]{%
+  {\color{nyscolor} [\textbf{NYS}: {#1}]}%
+}
+
+\newcommand{\btk}[1]{%
+  {\color{red} [\textbf{BTK}: {#1}]}%
+}
+
+% Custom colors
+\definecolor{shadecolor}{RGB}{255,255,255}  % white background
+\definecolor{Rcode}{RGB}{136, 18, 128}      % keyword purple (similar to print)
+\definecolor{Rout}{RGB}{90, 90, 90}         % output gray
+\definecolor{Rcomment}{RGB}{110,110,110}    % comment gray
+
+% Redefine how R chunks are styled
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd{\@Verbatim}{\fbox}{\color{black}}{}{}
+\makeatother
+
+% Required if using knitr
+\usepackage{alltt}
+\usepackage{fancyvrb}
+\DefineVerbatimEnvironment{Sinput}{Verbatim}{fontshape=sl,formatcom=\color{Rcode},commandchars=\\\{\}}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{formatcom=\color{Rout}}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{formatcom=\color{Rcode}}
+
+\newcounter{mysection}
+\newcounter{mysubsection}[mysection]
+\newcounter{mysubsubsection}[mysubsection]
+
+\renewcommand{\themysection}{\arabic{mysection}}
+\renewcommand{\themysubsection}{\themysection.\arabic{mysubsection}}
+\renewcommand{\themysubsubsection}{\themysubsection.\arabic{mysubsubsection}}
+
+\newcommand{\sectiontitle}[1]{%
+  \refstepcounter{mysection}%
+  \setcounter{mysubsection}{0}%
+  \setcounter{mysubsubsection}{0}%
+  \vspace{0.6em}%
+  \noindent{\textsf{\large \textbf{\themysection\hspace{0.8em}#1}}}\par\vspace{0.4em}%
+}
+
+\newcommand{\subsectiontitle}[1]{%
+  \refstepcounter{mysubsection}%
+  \setcounter{mysubsubsection}{0}%
+  \vspace{0.3em}%
+  \noindent{\large \themysubsection\hspace{0.6em}#1}\par%
+}
+
+\newcommand{\subsubsectiontitle}[1]{%
+  \refstepcounter{mysubsubsection}%
+  \vspace{0.3em}%
+  \noindent{\normalsize \themysubsubsection\hspace{0.6em}#1}\par%
+}
+
+\geometry{letterpaper}                  
+\hypersetup{colorlinks=false, allcolors=blue}
+
+
+\begin{document}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\footnotesize{COMPSCI 91R}}
+\fancyfoot[C]{\thepage}
+%\renewcommand{\headrulewidth}{0pt}
+
+\begin{center}
+{\huge \textsf{\textbf{Empirical Bayes: Midterm Report}} \par
+Statistical Reinforcement Learning Lab}
+
+\vspace{1em}   % increase space between title and names
+
+Nora Y. Sun and Betina T. Kreiman\\
+\vspace{0.05cm}
+March 23, 2026
+\end{center}
+
+\sectiontitle{Introduction}
+Clinical trials often involve low numbers of participants and are conducted in high-uncertainty environments. When data is sparse, it becomes more difficult to determine what treatment or action is optimal. Classical reinforcement learning (RL) treats participants independently while complete pooling ignores heterogeneity. Though complete pooling has been favored due to the bias-variance trade-off, it operates under the strong and inaccurate assumption that participants are homogeneous.
+
+Empirical Bayes (EB) is a partial pooling strategy, which assumes that participants' parameters are drawn from an underlying hyperdistribution; in EB, the learning algorithm is run independently on each participant, but the action selection strategy is based upon this shared hyperdistribution. This approach has the potential to allow for individualized learning, while the action selection strategy can be stabilized by drawing information from all participants \autocite{doi:10.3102/10769986010002075}. The objective of this report is to evaluate EB's performance under various experimental settings. 
+
+\sam{Note for Susan. A really interesting question is:  \lq\lq In environments in which it is worthwhile to pool data across individuals, when is it ok to do individual-specific learning and only  do pooling in the action-selection?''  How to operationalize \lq\lq environment in which it is worthwhile to pool?''  
+}
+
+Across all settings described in this write-up, there are $n$ participants denoted as $i = 1, i=2, \ldots, i=n$. There are $T$ decision times denoted as $t=0, t=1, \ldots, t=T$. All participants start at the same time; there is no staggered enrollment. Other attributes of the underlying environment, such as how the reward is generated, differ from setting to setting. 
+
+We divide the RL algorithm into learning and decision-making components, which are separate from each other:
+
+\textit{Learning algorithm.} Based on the action, reward, and if applicable, state and/or context of each individual participant observed at the prior time points, the learning algorithm will produce estimate(s) of some parameter(s) for that participant. The learning algorithm will also produce a measure of uncertainty for its estimate(s) of these parameter(s). The action selection strategy will receive each of the learning algorithm's parameter estimates and measures of uncertainty. 
+
+\textit{Action selection.} After the learning algorithm has returned the parameters and measures of uncertainty, the action selection strategy will use pooled Thompson sampling (TS), unpooled TS, or empirical Bayes to determine actions for the participants ($A_{i,t}=a_{i,t}$). 
+ Finally, based on the action selected, the underlying environment will generate the participant's reward ($R_{i,a,t}$), which may take on any real number.
+
+The following write-up explores a vanilla multi-armed bandit (MAB) and a contextual bandit setting. Additionally, we present results of simulations based on the vanilla MAB setting. The theoretical formulations and simulation results for the vanilla MAB setting can be found in Section~\ref{sec:vanilla}, and the theoretical formulation for the contextual bandit setting can be found in Section~\ref{sec:context-var}. These section names describe the environment being tested, but it is important to recognize that we are also employing bandit algorithms, which are distinct from the bandit environment. 
+
+\textit{Note.} In this write-up, the learning algorithm and/or action selection strategy often happens to have the correct model for the true environment. However, this is deeply unrealistic and would never occur in real world settings.\\
+
+\sectiontitle{Vanilla Multi-Armed Bandit}
+\label{sec:vanilla}
+
+The vanilla MAB is often depicted as a gambler in front of slot machines (\enquote{arms}) who repeatedly pulls the arms to get rewards. In the vanilla MAB setting, participants have neither context nor state. Any parameters influencing the reward are constant for each participant regardless of time point, similar to how slot machine draws are not influenced by prior draws. 
+
+Here, we specifically test a two-armed bandit.  At every time point, the algorithm must choose between two possible actions denoted as $a=0$ and $a=1$ respectively. 
+
+\subsectiontitle{True Environment}
+
+Each participant $i$ has one parameter for each arm: $\theta_{i,a=0}$ and $\theta_{i,a=1}$. These parameters vary from participant to participant and represent the true mean of a participant's reward distribution for that arm. When setting the environment, the \textit{participant-level means} $\theta_{i,a=0}$ and $\theta_{i,a=1}$ are random draws from \textit{population-level distributions}, where the true population-level mean for the two arms are denoted as $\mu_0$ and $\mu_1$. $\mu_0$ and $\mu_1$ may differ or be identical in value and are designated at the start of the simulation.
+\begin{align*}
+ \theta_{i,a=0} &\sim \mathcal{N}(\mu_{a=0}, \tau^2_{a=0})\\
+ \theta_{i,a=1} &\sim \mathcal{N}(\mu_{a=1}, \tau^2_{a=1})
+\end{align*}
+
+At each time point $t$, the reward for each participant is determined by a random draw from the reward distribution corresponding to the arm selected for them by the action selection strategy. The reward distribution for each participant can be described as follows:
+\[
+R_{i,a,t} \sim \mathcal{N}(\theta_{i,a}, \sigma^2)
+\]
+
+This underlying environment contains two forms of variation—heterogeneity between participants ($\tau_a^2$) and noise within the measurements of each participant $i$ ($\sigma^2$)—which are also set at the start of the simulation. The values of both forms of heterogeneity can differ by arm.
+
+\begin{lstlisting}[caption={Set environment.}, label={lst:setenv}]
+// create true environment: theta ~ Normal(mu_a, tau_a^2)
+// return n x arms matrix of parameters theta_{i, a}
+Mat set_environment(int n, int arms, const Vec &mu_a, const Vec &tau_a, std::mt19937_64 &rng) {
+    Mat theta(n, Vec(arms));
+    for (int a=0; a<arms; ++a) {
+        // draw n independent participant parameters for arm a 
+        std::normal_distribution<double> d(mu_a[a], tau_a[a]);
+        for (int i=0; i<n; ++i) theta[i][a] = d(rng);
+    }
+    return theta;
+}
+\end{lstlisting}
+
+\subsectiontitle{Learning Algorithm}
+\label{sec:learning}
+
+\subsubsectiontitle{Unpooled Thompson Sampling and Empirical Bayes}
+%The learning algorithm is unaware of the true environment.  
+The learning algorithm's model for the reward is
+$$R_{i,a,t}=f(a)^T\theta_{i,a} + \varepsilon_{i,a,t} $$
+where  $f(a) = [1-a, a]^T$ and  $\{\varepsilon_{i,a,t}\}_{i\in[n], a\in \{0,1\}, t\in [T]}$ are independent normal random variables with mean $0$ and variance $\sigma^2$. \sam{I am not sure why the learning algorithm is using the same greek notation as the environment--this is not necessary because the learning algorithm does not know about the environment.  However most statisticians will know this so I am not suggesting you change notation.  Just be aware  that you need to explicitly tell your reader whether or not the learning algorithm knows the environment.} \nys{Got it!} Since there is no context in this environment, the feature vector depends only on the action.
+At each time point $t$, the learning algorithm observes all of participant $i$'s rewards up to time $t$.  The learning algorithm runs separately for each participant $i$, maintaining an individual posterior over $\theta = [\theta_{a=0}, \theta_{a=1}]^T$ where $
+%\hat{\theta}_{i,a,t} = 
+f(a)^T \hat{\theta}_{i,t}$ gives the  person-specific, arm-specific estimate.  (We have dropped the subscript $i$ on $\theta$ since this learning algorithm is person-specific.)  Before any learning occurs, the prior on $\theta$ is:
+\[
+\theta \sim \mathcal{N}(\mu_0, \Sigma_0), \quad
+\mu_0 = 
+\begin{pmatrix}
+    \mu_{a=0} \\ 
+    \mu_{a=1} 
+\end{pmatrix}, \quad 
+\Sigma_0 = \begin{pmatrix}
+    \tau^2_{a=0} & 0 \\
+    0 & \tau^2_{a=1}
+\end{pmatrix}
+\]
+The learning algorithm's uncertainty (posterior variance)  about $\theta$ for participant $i$ at time $t$ is:
+\[
+\Sigma_{i,t} = \left(\Sigma_0^{-1} + \frac{1}{\sigma^2}\sum_{j=1}^t f(a_{i,j})f(a_{i,j})^T \right)^{-1}
+\]
+\sam{something is wrong with the definition of $\Sigma_{i,t}$--the way in which $\sigma_a^2$ is represented in the formula is messed up! Please fix and check code!} \btk{Got it! We incorrectly had $\sigma_a$ but the sum runs over the time steps $j$ which can have different arms so we changed it to match the code which just had $\sigma$ for both values of $a$. This is aligned with the TS handout you gave us.}
+Since $f(a)$ is fixed within each arm, $\sum_{j=1}^t f(a_{i,j})f(a_{i,j})^T$ depends only on the pull counts $n_{i,0,t}$ and $n_{i,1,t}$ (where $n_{i,a,t}$ denotes the number of times the action selection strategy has selected an action $a$ up to time $t$ for participant $i$):
+\[
+\sum_{j=1}^t f(a_{i,j})f(a_{i,j})^T = n_{i,0,t} \begin{pmatrix}
+    1 & 0 \\ 0 & 0 
+\end{pmatrix} + n_{i,1,t} \begin{pmatrix}
+    0 & 0 \\ 0 & 1 
+\end{pmatrix} 
+\]
+so $\Sigma_{i,t}$ is diagonal and the two arms' uncertainties evolve independently. The posterior mean for participant $i$ is:
+\[
+\hat{\theta}_{i,t} = \Sigma_{i,t} \left(\Sigma_0^{-1} \mu_0 + \frac{1}{\sigma^2} \sum_{j=1}^t f(a_{i,j})R_{i,a_{i,j},j} 
+\right)
+\]
+\sam{something is wrong with the definition of $\hat\theta_{i,t}$--the way in which $\sigma^2$ is represented in the formula is messed up! Please fix and check code!} \btk{Changed to $\sigma$!}
+The arm-specific estimate is then $%\hat{\theta}_{i,a,t} = 
+f(a)^T \hat{\theta}_{i,t}$. At each time point, the learning algorithm sends the pair $\hat{\theta}_{i,t}, \Sigma_{i,t}$ to the action selection strategy for participant $i$.
+
+\begin{lstlisting}[caption={Unpooled TS and EB Learning Algorithm}, label={lst:unpool_ts_learnalg}]
+// maintains separate posterior (m[i][a], v[i][a])
+// prior: mu_{a,0} = mu0[a], Sigma_{a,0} = tau0[a]^2
+
+// initialize each participant's posterior to prior
+Mat m(n, Vec(2));
+Mat v(n, Vec(2));
+for (int i = 0; i < n; ++i) {
+    m[i][0] = mu0[0]; m[i][1] = mu0[1];
+    v[i][0] = tau0[0]*tau0[0]; v[i][1] = tau0[1]*tau0[1];
+}
+
+// ... after observing reward r for participant i, arm a_sel
+
+// learning step: update participant i's posterior for the selected arm
+double prec  = 1.0 / v[i][a_sel] + 1.0 / sig2;
+double v_new = 1.0 / prec;
+double m_new = v_new * (m[i][a_sel] / v[i][a_sel] + r / sig2);
+m[i][a_sel]  = m_new;
+v[i][a_sel]  = v_new;
+\end{lstlisting}
+
+\subsubsectiontitle{Pooled Thompson Sampling}
+The model used by the pooled learning algorithm  is similar to above but now acts as if the mean is the same, namely
+for the reward is
+$$R_{i,a,t}=f(a)^T\theta_{a} + \varepsilon_{i,a,t} $$
+where  $f(a) = [1-a, a]^T$ and  $\{\varepsilon_{i,a,t}\}_{i\in[n], a\in \{0,1\}, t\in [T]}$ are independent normal random variables with mean $0$ and variance  $\sigma^2$. 
+
+
+The pooled learning algorithm maintains a single shared posterior over $\theta=(\theta_0,\theta_1)^T$, updated using all $n$ participant's observations up to time $t$. The prior is identical to the unpooled case. The shared posterior variance of $\theta$ is:
+\[
+\Sigma_t = \left(\Sigma_0^{-1} + \frac{1}{\sigma^2} \sum_{i=1}^n \sum_{j=1}^t f(a_{i,j})f(a_{i,j})^T \right)^{-1}
+\]
+where the double sum again decomposes by arm:
+\[
+\sum_{i=1}^n \sum_{j=1}^t f(a_{i,j})f(a_{i,j})^T = \left(\sum_{i=1}^n n_{i,0,t} \right) \begin{pmatrix}
+    1 & 0 \\ 0 & 0
+\end{pmatrix} + \left(\sum_{i=1}^n n_{i,1,t} \right) \begin{pmatrix}
+    0 & 0 \\ 0 & 1
+\end{pmatrix}
+\]
+\sam{something is wrong with the definition of $\Sigma_{t}$--the way in which $\sigma_a^2$ is represented in the formula is messed up! Please fix and check code!} \btk{Changed to $\sigma$!}
+The shared posterior mean is:
+\[
+\hat{\theta}_t = \Sigma_t \left(\Sigma_0^{-1} \mu_0 + \frac{1}{\sigma^2} \sum_{i=1}^n \sum_{j=1}^t f(a_{i,j})R_{i, a_{i,j},j} \right)
+\]
+\sam{something is wrong with the definition of $\hat\theta_{t}$--the way in which $\sigma_a^2$ is represented in the formula  for $\Sigma_t$ is messed up! Please fix and check code!} \btk{Changed to $\sigma$!}
+At each time point, the learning algorithm sends the single shared pair $(\hat{\theta}_t, \Sigma_t)$ to the action selection strategy, which is used for all $n$ participants. 
+
+\begin{lstlisting}[caption={Pooled TS Learning Algorithm}, label={lst:pool_ts_learnalg}]
+// maintains single shared posterior (post_mean[a], post_var[a]) = (mu_t, Sigma_t)
+// prior: mu_0 = mu0[a], Sigma_0 = tau0[a]^2
+
+// initialize shared statistics across all participants
+IVec N(2,0);
+Vec S(2,0.0);
+
+// shared posterior recomputed at each time step
+Vec post_mean(2), post_var(2);
+for(int a=0; a<2; ++a){
+    double prec_prior = 1.0/(tau0[a]*tau0[a]);
+    double prec_data  = N[a]/sig2;
+    double v = 1.0/(prec_data+prec_prior);
+    double m = v*(mu0[a]/(tau0[a]*tau0[a]) + S[a]/sig2);
+    if(N[a]==0){m=mu0[a]; v=tau0[a]*tau0[a];}
+    post_mean[a]=m; post_var[a]=v;
+}
+
+// ... after observing reward r for participant i, arm best_a
+
+// learning step: accumulate participant i's observation into shared statistics
+// at next time step update shared posterior for all n participants simultaneously
+S[best_a] += r;
+N[best_a]++;
+\end{lstlisting}
+
+% The learning algorithm will observe all actions and rewards prior to time $t$ on participant $i$. At each decision time $t$, the learning algorithm has observed the rewards: $r_{i,a,1}, r_{i,a,2}, \ldots, r_{i,a,n_{i,a,t}}$ where $n_{i,a,t}$ denotes the number of times the action selection strategy has selected an action $a$ up to time $t$ for participant $i$. 
+% % $n_{i,a,t}$ denotes the number of times
+% % \sam{ that the selected action $a$ was delivered to participant $i$  up to time $t$. } 
+
+% The goal of the learning algorithm is to estimate the value of a parameter called $\theta_{i,a}$ for each participant and action, which it believes to be the mean of the participant's reward distribution for action $a$. As one estimate is produced for each individual and action at each time point, these estimates will be called $\hat{\theta}_{i,a,t}$. 
+
+% We use a Bayesian Learning algorithm to update our mean and variance at each time step as follows. Before any learning occurs, the prior is set to be:
+% \[
+% \theta_{i,a} \sim \mathcal{N}(0, \tau_0^2)
+% \]
+
+% Then, the learning algorithm's uncertainty about its estimates can be described as follows:
+
+% \[
+% EQUATION
+% \]
+
+
+% The learning algorithm will use a frequentist approach and estimate the participant's mean by using the sample mean:
+% \[\hat{\theta}_{i,a,t} = \frac{1}{n_{i,a,t}} \sum_{j=1}^{n_{i,a,t}} r_{i,a,j}
+% \]
+% Since each reward has variance $\sigma_a^2$, then the variance of this estimator is:
+% \[
+%     \sigma_{i,a,t}^2 = \frac{\sigma_a^2}{n}
+% \]
+% This yields the likelihood:
+% \[
+%     \hat{\theta}_{i,a,t} \sim \mathcal{N} (\theta_{i,a}, \sigma_{i,a,t}^2)
+% \]
+% Since we assumed that participants are drawn from a population where $\theta_{i,a}\sim \mathcal{N}(\mu_a, \tau_a^2)$, using Empirical Bayes, we are trying to estimate $\hat{\mu}_a$ and $\hat{\tau}_a^2$ from the data. Using Bayesian learning we get the likelihood:
+% \[
+% \hat{\theta}_{i,a,t}| \theta_{i,a} \mathcal{N}(\theta_{i,a}, \sigma_{i,a,t}^2)
+% \]
+% Using the prior:
+% \[
+% \theta_{i,a} \sim \mathcal{N}(\hat{\mu}_a), \hat{\tau}_a^2
+% \]
+% Since both distributions are normal, then the posterior is also normal:
+
+% \nys{Betina, could you write out the math for how the learning algorithm actually learns the estimates and calculates the uncertainty in this case? I think it's Bayesian? (Updating?)}
+% The learning algorithm will also output a measure of its uncertainty in the estimate $\hat{\theta}_{i,a,t}$ of the parameter $\theta_{i,a}$ for each participant and action.  This uncertainty is denoted by $\sigma^2_{i,a,t}$. %\sam{do not need normality.} The learning algorithm assumes rewards are distributed normally, which means that t
+% The variance of the sample mean is:
+% \[
+%     \text{Var}(\hat{\theta}_{i,a,t}) =\sigma_{i,a,t}^2 = \frac{\sigma_{i,a}^2}{n_{i,a,t}}
+% \]
+% However, the learning algorithm does not know the within-person variance $\sigma_{i, a}^2$. Instead, it estimates a participant-specific variance from the observed rewards. For each participant $i$ and action $a$, the sample variance at time $t$ is estimated as: 
+% % thus, it is estimated using the sample variance of observed rewards for each arm, pooled across individuals, and used to compute the uncertainty for each mean estimate. The sample variance is:
+% \[
+% \hat{\sigma}_{i,a,t}^2 = \frac{1}{n_{i,a,t}-1} \sum_{j=1}^{n_{i,a,t}} (r_{i,a,j} - \hat{\theta}_{i,a,t})^2
+% \]
+% This captures the variability of rewards for participant $i$ under action $a$. Then, we can use this estimate to produce a measure of uncertainty:
+% % \sam{The learning algorithm, since it operates separately on each participant, will output $s_{i,a,t}^2$. The action selection strategy could decide to combine the participant-specific estimates of variance to produce an average variance.  So this part needs edits for the final report!}
+% % The learning algorithm assumes that $\sigma_a^2$ is the same for all participants for a given arm. Thus, we pool the sample variances for each participant to get an estimate of $\sigma_a^2$:
+% % \[
+% % \hat{\sigma}_a^2 = \frac{\sum_{i=1}^n (n_{i,a,t}-1)s_{i,a,t}^2}{\sum_{i=1}^n (n_{i,a,t}-1)}
+% % \]
+% \[\sigma_{i,a,t}^2 = \frac{\hat{\sigma}_{i,a,t}^2}{n_{i,a,t}} \]
+% Thus, the learning algorithm produces both a mean estimate $\hat{\theta}_{i,a,t}$ and an associated uncertainty $\sigma_{i,a,t}^2$ for each individual-action pair at time $t$. 
+%\sam{The learning algorithm, since it operates separately on each participant, will output $s_{i,a,t}^2$. The action selection strategy could decide to combine the participant-specific estimates of variance to produce an average variance.  So this part needs edits for the final report!} \btk{changed it so that the sample variance (participant specific) is used to calculate the within person variance. this is not averaged across people}
+% quantifies the learning algorithm's uncertainty about its estimate of the mean.
+
+% After each time point $t$, the learning algorithm will share parameter estimates and measures of uncertainty $(\hat{\theta}_{i,a,t}, \sigma^2_{i,a,t})$ for each participant with the action selection strategy. 
+%\sam{In general, above is quite good.   I made very minor edits to increase precision.  }  \sam{I am not sure why we decided to not use a Bayesian learning algorithm. If you google the term,\lq\lq Thompson Sampling\rq\rq,  you will see that the learning algorithm is Bayesian. However we are not using a Bayesian learning algorithm.  }
+
+
+%\sam{At the top of the file tree in this overleaf, you will see the .tex file, main.tex   This is an intro to Thompson-Sampling for both the pooled and unpooled versions.}
+
+
+
+\subsectiontitle{Action Selection Strategy}
+
+In all three cases, the action selection strategy receives the parameter estimates and measures of uncertainty for each participant from the learning algorithm. The learning algorithm is the same for the unpooled and empirical bayes cases.  In these cases, the strategy views $\hat{\theta}_{i,a,t}$ as the ith person's data (like an outcome), which has mean ${\theta}_{i,a}$ and 
+%is the mean of the rewards for each participant and
+$\sigma_{i,t}^2$ is the noise surrounding this outcome. Both the unpooled and empirical bayes action selection strategies assume that $\hat{\theta}_{i,a,t}\sim N({\theta}_{i,a}, \Sigma_{i,a,t}^2)$. For the pooled case, the learning algorithm instead sends $(\hat{\theta}_{a,t}, \Sigma_{a,t}^2)$, the same pair for every participant with no $i$ subscript. Here $\hat{\theta}_{a,t}$ is the shared estimate with mean $\theta_a$ and $\Sigma_{a,t}^2$ is the noise surrounding this outcome. The pooled TS action selection strategy assumes that $\hat{\theta}_{i,a,t} \sim N(\theta_a, \Sigma_{a,t}^2)$, reflecting the assumption that all participants share the same true parameter $\theta_a$. 
+%Furthermore, it believes that the $\hat{\theta}_{i,a,t}$ estimates are centered around the true mean, which may or may not also differ by participant $i$ depending on whether the action selection strategy is pooling.
+\sam{  So what does the pooled Thompson-Sampling learning algorithm send to the action selection strategy?
+%When we use the term,\lq\lq Thompson Sampling\rq\rq, both the learning algorithm and the action selection strategy are Bayesian. However we are not using a Bayesian learning algorithm. 
+} \btk{Added the fact that it assumes the "same thing" just without the mean being indexed by $i$.}
+
+
+%\sam{After I left edits in the text below, I realized the real issue concerns the combination of the above learning algorithm (which is not Bayesian) with the Pooled Thompson Sampling and the Unpooled Thompson Sampling action selection strategies.  I am just going to go over the section on empirical bayes as I realized we need to get what Thompson Sampling is straight......}
+
+
+
+\subsubsectiontitle{Empirical Bayes} \label{EB}
+The action selection strategy receives $(\hat{\mu}_{i,t}, \Sigma_{i,t})$ from the learning algorithm for each participant $i$ and computes the arm-specific estimates $\hat{\theta}_{i,a,t} = f(a)^T\hat{\mu}_{i,t}$ with associated scalar uncertainty $f(a)^T \Sigma_{i,t}f(a)$. Like unpooled TS, the action selection  strategy treats the estimates $\hat{\theta}_{i,a,t}$ produced by the learning algorithm as noisy observations of the true participant-specific reward means $\theta_{i,a}$. Under the Gaussian model, these estimates satisfy:
+\[
+\hat{\theta}_{i,a,t} \ | \ \theta_{i,a} \sim \mathcal{N}(\theta_{i,a}, f(a)^T \Sigma_{i,t}f(a))
+\]
+where $\sigma_{i,t}^2$ represents the uncertainty associated with each estimate. These $\hat{\theta}_{i,a}$'s are assumed to be independent across participants and actions. 
+% believes that the $\hat{\theta}_{i,a,t}$ produced by the learning algorithm are estimates of the unique reward mean for each participant-action combination at time $t$ and $\sigma^2_{i,a,t}$ is the noise associated with that estimate. 
+%\sam{I think our model for the data $\hat{\theta}_{1,0,t}, \hat{\theta}_{1,1,t}, \hat{\theta}_{2,0,t}, \hat{\theta}_{2,1,t},\ldots, \hat{\theta}_{n,0,t}, \hat{\theta}_{n,1,t}$ is that these are all independent and each has distribution, $\hat\theta_{i,a,t} \sim \mathcal{N}(\theta_{i,a}, \sigma^2_{i,a,t})$.  Is this correct?} \btk{yes and I added a part to specify this above}
+
+
+%\sam{I think the following is the prior on $\theta_{i,a}$.  Are the prior distributions for $\{\theta_{i,a}\}_{a\in\{0,1\}, i\in[n]}$ independent?} \sam{That is are we assuming that the  $\theta_{i,a}$'s are independent across $i$ and $a$?  I think so.} \nys{Yes, we are assuming they are independent, and I added a sentence specifying this below.}
+%However, \textit{unlike} unpooled TS, 
+EB uniquely believes that the true parameters $\theta_{i,a}$ follow an underlying population-level hyperdistribution. Like the estimates, the true $\theta_{i,a}$ are independent across individual and action.  
+\[
+\theta_{i,a} \sim \mathcal{N}(\mu_{a}, \tau^2_{a})
+\]
+which serves as a prior distribution on $\theta_{i,a}$. Conditional on $\mu_a$ and $\tau_a^2$, the parameters $\theta_{i,a}$ are assumed to be independent across participants. This structure allows information to be shared across individuals through shared population parameters.   Note that marginally (integrating out $\theta_{i,a}$), 
+\[
+\hat{\theta}_{i,a,t} \ | \ \mu_{a},\tau^2_a \sim \mathcal{N}(\mu_{a}, f(a)^T \Sigma_{i,t}f(a)+\tau^2_a).
+\]
+We can verify this by using the law of total expectation and marginalizing out $\theta_{i,a}$ to get: 
+\[E[\hat{\theta}_{i,a,t}] = E[E[\hat{\theta}_{i,a,t}|\theta_{i,a}]] = E[\theta_{i,a}] = \mu_a
+\]
+\[
+\text{Var}(\hat{\theta}_{i,a,t}) = E[\text{Var}(\hat{\theta}_{i,a,t}|\theta_{i,a})] + \text{Var}(E[\hat{\theta}_{i,a,t}|\theta_{i,a}]) = f(a)^T \Sigma_{i,t}f(a) + \tau_a^2
+\]
+Further the $\hat{\theta}_{i,a,t}$'s are independent. This holds true because across participants $i\neq j$,  the $\theta_{i,a}$ are drawn independently across $i$ by assumption, and each $\hat{\theta}_{i,a,t}$ is estimated from participant $i$'s data alone, so $\hat{\theta}_{i,a,t}$ and $\hat{\theta}_{j,a,t}$ are independent. Across actions $a \neq a;$, since $f(0) = (1,0)^T$ and $f(a) = (0,1)^T$ are orthogonal and $\Sigma_{i,t}$ is diagonal, $\hat{\theta}_{i,0,t}$ and $\hat{\theta}_{i,1,t}$ depend on separate components of $\hat{\mu}_{i,t}$ and are therefore independent. 
+
+\sam{can you verify both of the above statements?} \btk{Added a couple sentences explaining both of them.}
+
+%\sam{I think above is a prior distribution for the parameter $\theta_{i,a}$. } \btk{added a sentence to specify}
+
+Thus, the action selection strategy first produces estimates of the population level hyperparameters based on the empirical distribution of the participant-level estimates. At the initial time point, the model assumes a prior of the form: $\theta_{i,a} \sim \mathcal{N}(\mu_{0},\tau_{0}^2)$
+where $\mu_0$ and $\tau_0^2$ are initial values for the hyperparameters set beforehand. As data is collected, these initial hyperparameters are replaced by empirical estimates $\hat{\mu}_a$ and $\hat{\tau}_a^2$, yielding the updated population-level prior seen above. Thus, the initial prior serves as a starting point, while the EB procedure updates this prior using observed data. (Later in this report, we discuss a specific case with a different $\mu_0$ and $\tau^2_0$ by arm $a$, but for this section, we assume we start with the same prior for both arms.)
+
+% Thus, this action selection strategy will first produce estimates for the population-level hyperparameters based on the empirical distribution of the estimates from the learning algorithm.   At the first time point, the action selection strategy will use prior: 
+% \begin{align*}
+%     \theta_{i,a} \sim \mathcal{N}(\mu_{0},\tau_{0}^2)
+% \end{align*} where $\mu_0$ and $\tau^2_0$ are set beforehand.
+%\sam{Why do we have two different distributions for $\theta_{i,a}$?} \btk{I specified that one is the initial prior and the other is what EB uses after collecting data. please let me know if this is still confusing}
+
+%\sam{Would you fix the text above, then email me and then I will edit the comments below?   Are we sure that the marginal joint likelihood below is a product?   I suspect it is but need the details above....
+}
+
+%\sam{first derive joint posterior distribution.  Then recognize that you (the Bayesian statistician) did not specify values for  $\mu_$  and $\tau^2_0$ which you need to know the posterior distribution and to sample from this posterior distribution.   Then, second, you think:  "I will be an empirical Bayes statistician".   As an empirical Bayes statistician I will form the marginal likelihood for my data, $\hat{\theta}_{1,a,t}, \hat{\theta}_{2,a,t}, \ldots, \hat{\theta}_{n,a,t})$.  The likelihood is "marginal" because you integrate out over the $ \theta_{i,a}$'s!}
+
+To obtain empirical estimates, $\hat{\mu}_a$ and $\hat{\tau}_a^2$ the action selection strategy maximizes the  marginal joint likelihood of hyperparameters $\{(\mu_{a}, \tau^2_a)\}_{a\in\{0,1\}}$ given the observed data ($\hat{\theta}_{1,a,t}, \hat{\theta}_{2,a,t}, \ldots, \hat{\theta}_{n,a,t})$ which is:
+$$L(\mu_{a}, \tau_a^2)
+= \prod_{i=1}^{n}
+  \mathcal{N}\!\left(\hat{\theta}_{i,a,t} \mid \mu_{a},\, f(a)^T \Sigma_{i,t}f(a) + \tau_a^2\right)$$
+Then, EB estimates the variance using the profile log-likelihood and the mean as follows:
+\[
+\hat{\tau}_a^{2}=\arg\max_{\tau_a^{2}\ge0}\ell_p(\tau_a^{2}),
+\quad
+\hat{\mu}_a=
+\left(\sum_{i=1}^{n}(\hat{\tau}_a^{2}+f(a)^T \Sigma_{i,t}f(a))^{-1}\hat{\theta}_{i,a,t}\right)
+\left(\sum_{i=1}^{n}(\hat{\tau}_a^{2}+f(a)^T \Sigma_{i,t}f(a))^{-1}\right)^{-1}
+\]
+\nys{Note: In practice, we use MOM to estimate $\hat{\tau}_a^{2}$, since there is no closed form for its MLE:
+$$\hat{\tau}_a^2 = \frac{1}{n-1}\sum_{i=1}^n \left(\hat{\theta}_{i,a,t} - \bar{\theta}_{a,t}\right)^2 - \frac{1}{n}\sum_{i=1}^n f(a)^\top \Sigma_{i,t} f(a), \quad \bar{\theta}_{a,t} = \frac{1}{n}\sum_{i=1}^n \hat{\theta}_{i,a,t}$$
+Then, we do estimate $\hat{\mu}_a$ using the MLE.}
+
+These empirical hyperparameters define the updated population-level prior $\theta_{i,a} \sim \mathcal{N}(\hat{\mu}_a, \hat{\tau}_a^2)$.
+% Combining this with the likelihood of $\hat{\theta}_{i,a,t}$, the posterior distribution for each participant and arm is
+% After estimating $\hat{\mu}_a$ and $\hat{\tau}_a^2$, these empirical hyperparameters define the updated population-level prior:
+% \[
+% \theta_{i,a} \sim \mathcal{N}(\hat{\mu}_a, \hat{\tau}_a^2)
+% \]
+Combining this prior with the likelihood of $\hat{\theta}_{i,a,t}$, the posterior distribution factorizes across participants and arms as:
+\[
+p \left(\{\theta_{i,a}\}_{\{a \in \{0,1\}, i \in [n]} \right) = \prod_{a \in \{0,1 \}} \prod_{i=1}^n p(\theta_{i,a} | \hat{{\theta}}_{i,a,t}, f(a)^T \Sigma_{i,t}f(a))
+\]
+Each factor is Gaussian:
+
+% After the hyperparameters are empirically estimated, the hyperdistribution is used to perform a Bayesian update to the prior distribution of the $\theta_{i,a}$ for each participant. The posterior distribution below includes a shrinkage term $\lambda_{i,a,t}$ weighs the new information based on a comparison between its variance and our estimate of the population-level variance, increasing the weight of whichever value has lower noise.  
+
+\sam{instead of following, you should derive the posterior distribution of $\{\theta_{i,a}\}_{a\in\{0,1\}, i\in[n]} \mid\{\hat{\theta}_{i,a,t},\sigma^2_{i,a,t}\}_{a\in\{0,1\}, i\in[n]}$.   The equation below indicates that the posterior distribution  is actually a product of normal distributions.} \btk{rewrote this section to better specify that the posterior is over the whole collection which factors into a product} 
+
+\[
+\theta_{i,a}\mid\hat{\theta}_{i,a,t}
+\sim
+\mathcal{N}\!\left(
+\lambda_{i,a,t}\hat{\theta}_{i,a,t}+(1-\lambda_{i,a,t})\hat{\mu}_a,
+(f(a)^T \Sigma_{i,t}f(a))^{-1}+\hat{\tau}_a^{-2})^{-1}
+\right), \quad \lambda_{i,a,t}
+    =
+    \hat{\tau}_a^{2}({\hat{\tau}_a^{2} + f(a)^T \Sigma_{i,t}f(a))})^{-1}
+\]
+Thus, the posterior mean is a shrinkage estimator that balances the participant-level estimate $\hat{{\theta}_{i,a,t}}$ and the population-level mean $\hat{\mu}_a$ with more weight placed on the quantity having lower uncertainty.
+
+
+For the full derivation of the population-level hyperdistribution and parameters' posterior distribution, please see Nora's steps problem write-up.\autocite{sun_steps}
+
+
+Because the action strategy believes that the rewards associated with the two arms are independent Normals, and the difference of two independent Normals is Normal, the probability of a random draw from one arm yielding a greater value is
+\begin{align*}
+\textrm{P}(\theta_{i,1}>\theta_{i,0})
+=
+\Phi\!\left(
+\frac{
+[\lambda_{i,1,t}\hat{\theta}_{i,1,t}+(1-\lambda_{i,1,t})\hat{\mu}_{1}]
+-
+[\lambda_{i,0,t}\hat{\theta}_{i,0,t}+(1-\lambda_{i,0,t})\hat{\mu}_{0}]
+}{
+\sqrt{
+(f(1)^T \Sigma_{i,t}f(1))^{-1}+\hat{\tau}_{1}^{-2})^{-1}
++
+(f(0)^T \Sigma_{i,t}f(0))^{-1}+\hat{\tau}_{0}^{-2})^{-1}
+}}
+\right)
+\end{align*}
+where $\Phi(\cdot)$ is the standard Normal CDF. Using the principles of TS, when choosing the next action, the strategy will pick action $1$ with probability $\textrm{P}(\theta_{i,1}>\theta_{i,0})$ and action $0$ with $1-\textrm{P}(\theta_{i,1}>\theta_{i,0})=\textrm{P}(\theta_{i,0}>\theta_{i,1})$.
+\[
+a^*_{i,t} =
+\begin{cases}
+1, & \text{with probability } \textrm{P}(\theta_{i,1}>\theta_{i,0}),\\
+0, & \text{with probability } 1-\textrm{P}(\theta_{i,1}>\theta_{i,0}).
+\end{cases}
+\]
+
+\begin{lstlisting}[caption={EB Action Selection Strategy}, label={lst:eb_actionsel}]
+// at each time step, EB estimates population-level hyperparameters, then computes shrinkage posteriors, and selects arm with higher probability of greater reward
+
+// Step 1: estimate population-level hyperparameters per arm
+Vec mu_hat(2, 0.0), tau2_hat(2, 0.0);
+for (int a = 0; a < 2; ++a) {
+    // compute tau2_hat using simple mean
+    // NOTE: unlike the write-up above, we use MOM instead of MLE to compute tau2 due to its lack of closed form MLE; see Nora's comment
+    double mean_m = 0.0;
+    for (int i = 0; i < n; ++i) mean_m += m[i][a];
+    mean_m /= n;
+
+    double var_m = 0.0;
+    for (int i = 0; i < n; ++i) { double d = m[i][a]-mean_m; var_m += d*d; }
+    var_m = (n > 1) ? var_m / (n-1) : 0.0;
+
+    double mean_v = 0.0;
+    for (int i = 0; i < n; ++i) mean_v += v[i][a];
+    mean_v /= n;
+
+    double est_tau2 = var_m - mean_v;
+    if (est_tau2 < 0.0) est_tau2 = 0.0;
+    tau2_hat[a] = est_tau2;
+
+    // weighted mean for mu_hat: participants with lower uncertainty receive more weight
+    double wsum = 0.0, wmsum = 0.0;
+    for (int i = 0; i < n; ++i) {
+        double w = 1.0 / (tau2_hat[a] + v[i][a]);
+        wsum += w;  wmsum += w * m[i][a];
+    }
+    mu_hat[a] = (wsum > 0.0) ? wmsum / wsum : mean_m;
+}
+
+// Step 2: Per-participant shrinkage and arm selection
+for (int i = 0; i < n; ++i) {
+    Vec m_eb(2), v_eb(2);
+    for (int a = 0; a < 2; ++a) {
+        // lambda -> 1: rely on individual estimate (low noise, high heterogeneity)
+        // lambda -> 0: rely on population mean   (high noise, low heterogeneity)
+        double lam = (tau2_hat[a] > 0.0)
+                     ? tau2_hat[a] / (tau2_hat[a] + v[i][a]) : 0.0;
+        m_eb[a] = lam * m[i][a] + (1.0 - lam) * mu_hat[a];
+        v_eb[a] = (tau2_hat[a] > 0.0)
+                  ? (v[i][a] * tau2_hat[a]) / (v[i][a] + tau2_hat[a]) : 0.0;
+    }
+
+    // Select arm probabilistically: since both posteriors are Gaussian
+    double diff     = m_eb[1] - m_eb[0];
+    double var_diff = v_eb[1] + v_eb[0];
+    double z        = diff / std::sqrt(std::max(var_diff, 1e-20));
+    double p1       = normal_cdf(z);
+
+    // a_{i,t} = 1 with prob P(theta_{i,1} > theta_{i,0}), else 0
+    std::uniform_real_distribution<double> ud(0.0, 1.0);
+    int a_sel = (ud(rng) < p1) ? 1 : 0;
+}
+\end{lstlisting}
+
+
+\subsubsectiontitle{Pooled Thompson Sampling}
+
+ Under total pooling, the action selection strategy assumes that there is no heterogeneity across participants. \textit{Thus in this strategy specifically,} for each action $a$, all participants share a common mean reward parameter $\mu_a$ such that $\theta_{i,a} = \mu_a$ for \textit{all} participants $i$. For each participant $i$, the action selection strategy receives the shared pair $(\hat{\mu}_{t-1}, \Sigma_{}t-1)$ from the learning algorithm (note that there is no dependence on the participant $i$). The structure is identical to the unpooled case, except all participants draw from the same shared posterior. At each time step, for each participant $i = 1, \ldots, n$, the strategy independently draws:
+ \[
+ \Tilde{\mu}_{i,t} \sim \mathcal{N}(\hat{\mu}_{t-1}, \Sigma_{t-1})
+ \]
+ and forms the sampled estimates:
+ \[
+\hat{\theta}_{i,a,t} = f(a)^T \Tilde{\mu}_{i,t} 
+\]
+The action selected for participant $i$ is:
+\[
+a_{i,t} = \arg\max_a \hat{\theta}_{i,a,t} 
+\]
+ 
+ 
+ 
+%  Thus the model for the data is $\hat{\theta}_{i,a,t}\sim N(\mu_a, \sigma_{i,a,t})$.
+
+% %Since Thompson Sampling is a Bayesian approach, 
+% We can use a Bayesian approach and place a prior distribution over the unknown mean reward $\mu_a$. In the Gaussian setting, we assume a conjugate normal prior $\mu_a \sim \mathcal{N}(\mu_{0}, \tau_{0}^2)$ where $\mu_a$ and $\tau_0^2$ are the initial guesses of the arm's mean reward and its associated uncertainty. Given observed data, the posterior distribution remains Gaussian, and at time $t$ takes the form $\mu_a \mid \{\hat{\theta}_{i,a,t}, i=1,..n\} \sim \mathcal{N}(\hat{\mu}_{a,t}, V_{a,t})$ where $\hat{\mu}_{a,t}$ and $V_{a,t}$ denote the posterior mean and variance, respectively. \sam{See below for the formulas for  $\hat{\mu}_{a,t}$ and for $V_{a,t}$ in terms of $\tau_0^2$ and $\sigma_{i,a,t}$'s.}
+
+
+% %\sam{We know that Thompson Sampling is a Bayesian approach.  So you need to tell reader what is prior distribution and you need to explain to reader why $\hat{\mu}_{a,t}$ is the posterior mean and why $V_{a,t}$ is the posterior variance.   To learn about this ask Gemini  "Please explain Gaussian Thompson Sampling".} \btk{added to section above and below to specify prior and posterior}
+
+% Given the participant level estimates $\hat{\theta}_{i,a,t}$ and their uncertainties $\sigma_{i,a,t}^2$ produced by the learning algorithm, this action selection strategy constructs a pooled estimate of the mean reward for arm $a$. Under the assumption of independent Gaussian observations, the posterior mean is a precision-weighted average of the participant-level estimates:
+% \[
+% \hat{\mu}_{a,t} = \frac{\sum_{i=1}^n (\sigma_{i,a,t}^2)^{-1}\hat{\theta}_{i,a,t}}{\sum_{i=1}^n (\sigma_{i,a,t}^2)^{-1}}
+% \]
+% \sam{Above formula for posterior mean, $\hat{\mu}_{a,t}$ is incorrect (if we are being bayesians...). The weighted average involves $\tau_0^2$...  Ask me if you want us to derive this together.  I think Nora's old notes contain similar derivations!}
+
+
+% \textit{For this section specifically}, we designate the estimate of the pooled variance as $V_{a,t}$. It is determined as follows:
+% \[
+% V_{a,t} = \left(\sum_{i=1}^n (\sigma_{i,a,t}^2)^{-1}
+% \right)^{-1}
+% \]
+% \sam{above formula is incorrect.  Should be a $\tau_0^2$ in there somewhere!}
+% This expression arises from a Bayesian model in which each participant-level estimate $\hat{\theta}_{i,a,t}$ is treated as an independent Gaussian observation of the shared mean $\mu_a$ with variance $\sigma_{i,a,t}^2$. \sam{Yes!} 
+
+% Thus, at time $t$, the action selection strategy maintains a posterior distribution over the shared parameter:
+% Thus, at time $t$, the action selection strategy believes that the true parameter $\mu_{a}$, which equals $\theta_{i,a}$ for all individuals, is distributed as:
+% \[
+% \mu_{a,t} \ | \ \hat{\theta}_{i,a,t} \sim \mathcal{N}(\hat{\mu}_{a,t}, V_{a,t})
+% \]
+% for each arm $a$.  To select an action, Thompson sampling draws a random sample from this posterior distribution for each arm. That is, for each arm $a$, we sample: 
+% \[
+% \Tilde{\mu}_{a,t} \sim \mathcal{N}(\hat{\mu}_{a,t}, V_{a,t})
+% \]
+% The selected action is then the arm with the largest sampled value:
+% % The arm with the largest sampled value at the action at time $t$ is chosen for \textit{all} participants.
+% \[
+% a^*_{t} = \arg\max_a \Tilde{\mu}_{a,t}
+% \]
+% \sam{Yes!!} 
+Using this action selection strategy, information from all participants is combined, making it advantageous when there is no true heterogeneity between participant and/or noisy data.
+
+\begin{lstlisting}[caption={Pooled TS Action Selection Strategy}, label={lst:poolts_actionsel}]
+// each participant i draws own independent sample from shared posterior
+for (int i = 0; i < n; ++i) {
+    double best_val = -INFINITY;
+    int best_a = 0;
+    for (int a = 0; a < 2; ++a) {
+        std::normal_distribution<double> dist(post_mean[a], std::sqrt(post_var[a]));
+        double samp = dist(rng);
+        if (samp > best_val) { best_val = samp; best_a = a; }
+    }
+    // ... observe reward and update shared statistics
+}
+\end{lstlisting}
+
+\subsubsectiontitle{Unpooled Thompson Sampling} 
+
+For each participant $i$, the action selection strategy receives the pair $(\hat{\mu}_{i,t-1}, \Sigma_{i,t-1})$ from the learning algorithm. The strategy treats $\hat{\mu)}_{i,t-1}$ as an estimate of the true $\mu_a$ distributed around it as:
+\[
+\hat{\mu}_{i,t-1} \ | \ \mu_a \sim \mathcal{N}(\mu_a, \Sigma_{i,t-1})
+\]
+The prior on $\theta_{i,a}$ is $N(\mu_0, \Sigma_0)$ as defined in Section 2.2. After observing rewards $R_{i,1}, \ldots, R_{i,t-1}$, applying Bayes' theorem with this Gaussian prior and Gaussian likelihood yields a Gaussian posterior, with $\hat{\theta}_{i,a,t}$ and $\sigma_{i,t}^2$ as the posterior mean and variance respectively. Thus $\theta_{i,a} \sim N (\hat{\theta}_{i,a,t}, \sigma_{i,t}^2)$ is the posterior distribution on the true reward parameter for participant $i$ and arm $a$. 
+
+Thompson sampling then draws one sample from the current posterior at each time step:
+\[
+\Tilde{\mu}_{i,t} \sim \mathcal{N}(\hat{\mu}_{i,t-1}, \Sigma_{i,t-1})
+\]
+This sample is used to form a sampled estimate of the expected reward under each arm:
+\[
+\hat{\theta}_{i,a,t} = f(a)^T \Tilde{\mu}_{i,t} 
+\]
+The action selected for participant $i$ is the arm with the highest sampled estimate:
+\[
+a_{i,t} = \arg\max_a \hat{\theta}_{i,a,t} 
+\]
+
+% Under unpooled TS, the action selection strategy assumes that each participant-action pair has its own independent mean reward parameter, $\theta_{i,a}$. In other words, it does not assume any shared population structure across participants. Recall $\hat{\theta}_{i,a,t}\sim N({\theta}_{i,a}, \sigma_{i,a,t})$.
+
+% % It also believes that $\sigma^2_{i,a,t}$ is the learning algorithm's measure of uncertainty regarding its guess at the mean.
+
+% Since Thompson Sampling is a Bayesian approach, we place a prior distribution over each unknown parameter $\theta_{i,a}$. In the Gaussian setting, we assume a conjugate normal prior $\theta_{i,a} \sim \mathcal{N}(\theta_{0,a}, \tau_{0,a}^2)$. Given observed data for participant $i$ and action $a$, the posterior distribution remains Gaussian. At time $t$, this posterior for participant $i$ takes the form:
+% \[
+% \theta_{i,a} \ | \ \hat{\theta}_{i,a,t} \sim \mathcal{N}(\hat{\theta}_{i,a,t}, \sigma^2_{i,a,t})
+% \] 
+% where $\hat{\theta}_{i,a,t}$ and $\sigma^2_{i,a,t}$ are the outcome and variance, respectively, as produced by the learning algorithm (see description of learning algorithm). Thus $\sigma^2_{i,a,t}$ represents the algorithm's uncertainty about how close the data, $\hat{\theta}_{i,a,t}$, is to  the mean reward, $\theta_{i,a}$ for participant $i$ and action $a$.
+
+% Given these posterior distributions, Thompson sampling drwas a sample for each participant-action pair:
+% \[
+% \Tilde{\theta}_{i,a,t} \sim \mathcal{N}(\hat{\theta}_{i,a,t}, \sigma_{i,a,t}^2)
+% \]
+% Then, for each participant $i$, the algorithm selects the action with the highest sampled value:
+% \[
+% a^*_{i,t} = \arg\max_a \Tilde{\theta}_{i,a,t}
+% \]
+
+\sam{Same comment as before:  We know that Thompson Sampling is a Bayesian approach.  So you need to tell reader what is prior distribution and you need to explain to reader why $\theta_{i,a,t} \sim \mathcal{N} (\hat{\theta}_{i,a,t}, \sigma_{i,a,t}^2)$  is about the posterior distribution.
+} \btk{Added comment above to better explain why this is the posterior before explaining how TS draws the sample.}
+
+% Given the $\hat{\theta}_{i,a,t}$ and $\sigma_{i,a,t}^2$ that the learning algorithm provides, this strategy simply independently samples from the distribution
+% \[
+% \theta_{i,a,t} \sim \mathcal{N} (\hat{\theta}_{i,a,t}, \sigma_{i,a,t}^2)
+% \]
+% for each participant. Then, it selects a unique action $a$ for \textit{each} participant at time $t$:
+
+Based on the actions selected by the action selection strategy, the environment will then generate another reward, the learning algorithm will generate another set of estimates, and the action selection strategy will repeat this procedure.
+
+\begin{lstlisting}[caption={Unpooled TS Action Selection Strategy}, label={lst:unpoolts_actionsel}]
+// for participant i, draws one sampel from person posterior and selects arm with highest sampled estimate
+double best_val=-INFINITY;
+int best_a=0;
+for (int a=0; a<2; ++a) {
+    std::normal_distribution<double> dist(post_mean[a], std::sqrt(post_var[a]));
+    double sample = dist(rng);
+    if (sample>best_val) { best_val=sample; best_a=a; }
+}
+\end{lstlisting}
+
+\subsectiontitle{Simulations}
+
+Simulations were run using Python and C++ and iterated $500$ times to estimate average cumulative regret and assess variability across stochastic trials. The code is available in the \texttt{empirical-bayes} Github repository.\autocite{sun_kreiman_2026_simcode} We graph the \textit{cumulative regret} at the \textit{end} of the $T$ decision times, comparing the final regret to our noise-to-heterogeneity ratio. All simulations discussed below were run with $T=100$ and $n=50$.
+
+\subsubsectiontitle{Notation} 
+
+In this section specifically, $\mu_2$ is the difference between the true means of the two arms when the first arm's true mean is equal to 0. $\tau$ is the population-level standard deviation, while $\sigma$ denotes within participant noise, which is constant across all participants. $T$ is the number of time points, and $n$ is the number of participants. $\mu_0$ and $\tau_0$ are vectors of length 2, denoting the priors for the population-level distribution for the two arms respectively. All of these values are manually determined beforehand.
+
+Furthermore, recall that for EB, the posterior mean is $m_{i,a,t} = \lambda_{i,a,t} \hat{\theta}_{i,a,t} + (1-\lambda_{i,a,t})\hat{\mu}_a$, posterior variance is $(f(a)^T \Sigma_{i,t}f(a)^{-1} + \hat{\tau}_a^{-2})^{-1}$, and shrinkage weight is $\lambda_{i,a,t} = \hat{\tau}_a^2 / (\hat{\tau}_a^2 + f(a)^T \Sigma_{i,t}f(a)).$
+
+\subsectiontitle{No true difference between arms}
+\label{shrink}
+\begin{figure}[h!]
+    \centering
+    \textit{Two arms with identical true means}\par
+    \includegraphics[width=0.7\linewidth, trim=0 1.9cm 0 0, clip]{midterm/final_graphs_midterm/no_difference_arms_final.png}
+    \caption{Simulations under conditions where the true population-level means do not differ, as indicated by $\mu_2=0$. Priors were set as $\mu_0 = \begin{pmatrix}
+    0 \\ 0
+\end{pmatrix}, \tau_0 = \begin{pmatrix}
+    1 & 0 \\ 0 & 1
+\end{pmatrix}$ with 500 per $\sigma$ value.}
+    \label{fig:identical_means}
+\end{figure}
+
+% In this simulation, there is no global difference between the arms—no arm is better than the other. We hypothesized that unpooled TS will perform better in low noise-to-heterogeneity settings, when each participant provides a clear signal of their unique parameters. Meanwhile, EB will perform better in higher noise-to-heterogeneity settings; in those settings, it is advantageous to pool even though there is a true difference between participants because that true difference is challenging to estimate due to random noise.
+In this simulation, there is no global difference between the arms at the population level, as indicated by $\mu_2 = 0$. However, because between-person heterogeneity is nonzero ($\tau = 1$), individual participants still have a personally better arm: $\theta_{i,0} \neq \theta_{i,1}$ for each persion $i$. The optimal strategy is therefore to identify each participant's better arm individually rather than at the population level. 
+
+
+Our findings in Figure~\ref{fig:identical_means} show that unpooled TS performs best across all noise values $\sigma \in [0.01, 10.00]$. Pooled TS performs worst throughout, and EB interpolates between the two extremes depending on the noise-to-heterogeneity ratio $\sigma/\tau$.
+
+Unpooled TS performs best at every $\sigma$ value.. At low $\sigma$ ($\sigma \ll \tau$), within-person noise is small relative to between-person heterogeneity, so the learning algorithm quickly identifies each participant's personal $\theta_{i,a}$. The posterior uncertainty $\Sigma_{i,t}$ shrinks rapidly, and the algorithm confidently selects the better arm for each person, yielding low regret. As $\sigma$ increases, individual learning becomes noisier and regret grows, but unpooled TS remains the best strategy because it always relies solely on each participant's own data, never shrinking toward the population mean the way EB does at high $\sigma$.
+
+Pooled TS performs worst throughout. The shared posterior $(\hat{\mu}_t, \Sigma_t)$ estimates the population level mean $\mu_a$ and since $\mu_2=0$, both arms have the same population level mean, then the shared posterior cannot distinguish which arm is better for any individual. Arm assignment is therefore uninformative with respect to each person's true $\theta_{i,a}$, producing high regret across all values of $\sigma$. Since $\tau \neq 0$, complete pooling is incorrect, and pooled TS performs worst across all noise-to-heterogeneity ratios. 
+
+EB interpolates between unpooled and pooled, governed by the shrinkage weight:
+$$\lambda_{i,a,t} = \frac{\hat{\tau}_a^2}{\hat{\tau}_a^2 + f(a)^T \Sigma_{i,t}f(a)}$$
+On the left side of Figure~\ref{fig:identical_means} where $\sigma \ll \tau$, the individual posterior uncertainty $f(a)^T \Sigma_{i,t}f(a)$ is small relative to $\hat{\tau}_a^2$ so $\lambda_{i,a,t} \approx 1$ and the posterior mean relies mostly on the individual estimate:
+
+% align with our hypothesis. On the left side of the graph in Figure~\ref{fig:identical_means}, we have $\sigma \ll \tau$ (noise is far smaller than actual heterogeneity), which makes the shrinkage term in EB approximately $\lambda_{i,a,t} \approx 1$  and the posterior mean  $m_{i,a,t} \approx \hat{\theta}_{i,a,t}$. Thus, the posterior mean relies mostly on the individual (rather than population-level) mean, behaving like unpooled TS. 
+
+$$m_{i,a,t} = \lambda_{i,a,t} \hat{\theta}_{i,a,t} + (1-\lambda_{i,a,t})\hat{\mu}_a \approx \hat{\theta}_{i,a,t} \quad \text{when} \quad \lambda_{i,a,t} \approx 1$$
+
+In this regime EB behaves like unpooled TS, and its regret is similar to the regret of unpooled TS at low $\sigma$. On the right side of Figure~\ref{fig:identical_means} where $\sigma \gg \tau$, the individual posterior uncertainty is large relative to $\hat{\tau}_a^2$ so $\lambda_{i,a,t} \approx 0$ and the posterior mean shirnks toward the population estimate:
+
+% For middling noise-to-heterogeneity ratios, the posterior mean is a weighted average of the individual estimate $\hat{\theta}_{i,a,t}$ and the population estimate $\hat{\mu}_a$. Some shrinkage towards the mean allows reduction in noise without completely ignoring heterogeneity like pooled algorithms. Finally, on the right side of the graph when $\sigma \gg \tau$, we have a small $\lambda_{i,a,t}$ value, which means the posterior mean almost equals the population mean: $m_{i,a,t} \approx \hat{\mu}_a$. 
+$$m_{i,a,t} = \lambda_{i,a,t} \hat{\theta}_{i,a,t} + (1-\lambda_{i,a,t})\hat{\mu}_a \approx \hat{\mu}_{a} \quad \text{when} \quad \lambda_{i,a,t} \approx 0$$
+
+In this regime EB shrinks fully toward teh population mean, inheriting the poor performance of pooled TS. Since $\tau \neq 0$, the population mean is not informative for individual arm selection when $\mu_2=0$, and the increasing reliance on it at high $\sigma$ is what causes EB's regret to rise steeply and converge toward pooled TS. 
+
+% Since $\tau \neq 0$, complete pooling is incorrect, and pooled TS performs worst across all noise-to-heterogeneity ratios. 
+
+% - left EB like unpooled , ignoring geterogeneity
+% theta_[i,a] = mu_a
+% - when sigma large, all struggle but EB reduces variance through shrinkage so unpooled overtakes EB
+
+\subsectiontitle{True difference between arms}
+
+We now test settings where the two arms have different $\mu_{a}$. First, we describe a setting where there is a difference between the population-level means of each arm but no difference between participant-level means within that arm: $\tau_a=0$ and  $\theta_{i,a}=\mu_a$ for all participants. We also test a setting where there is \textit{both} a difference between the population-level means of each arm and heterogeneity among different participants' means \textit{within} that arm ($\tau_a>0$).
+
+\subsubsectiontitle{Homogeneous population}
+
+\begin{figure}[h!]
+    \centering
+    \begin{subfigure}{0.75\linewidth}
+        \centering
+        \textit{True difference between arms without heterogeneity between participants}\par
+        \includegraphics[width=\linewidth, trim=0 1.9cm 0 0, clip]{midterm/final_graphs_midterm/no_heterogeneity_final.png}
+    \end{subfigure}
+    \caption{Priors were set as $\mu_0 = \begin{pmatrix}
+    0 \\ 0
+\end{pmatrix}, \tau_0 = \begin{pmatrix}
+    1 & 0 \\ 0 & 1
+\end{pmatrix}$ with 500 runs per $\sigma$ value.}
+    \label{fig:no_heterogeneity}
+\end{figure}
+
+In this simulation, there is a true population-level difference between arms $\mu_2=1$ but no heterogeneity across participants $(\tau = 0)$, meaning $\theta_{i,a} = \mu_a$ for all $i$. Since all participants share identical true arm means, the optimal strategy is to pool data across participants to identify the better arm as quickly as possible.
+
+Our findings in Figure~\ref{fig:no_heterogeneity} show that pooled TS and EB both far outperform unpooled TS, with pooled TS and EB performing similarly across all values of $\sigma$.
+
+Unpooled TS performs worst throughout, with regret growing steeply with $\sigma$. Because it estimates each participant's arm means separately using only that participant's own observations, individualized estimation is useless when $\tau=0$ meaning there is nothing particpiant-specific to learn.
+
+Pooled TS performs nearly best across all $\sigma$. Since $\tau=0$, the pooled model is correctly specified, and aggregating all $n=50$ participants' data into a single shared posterior allows the algorithm to identify arm $1$ as superior quickly, keeping regret low even as $\sigma$ grows.
+
+EB closely follows pooled TS throughout. With $\tau = 0$, the individual estimates $m_{i,a}$ across participants are close to the same true mean $\mu_a$ so EB's estiamtge $\hat{\tau}_a^2 \approx 0$ when $\lambda_{i,a,t} \approx 0$ causes EB to rely on the shared population estimate $\hat{\mu}_a$. The slightly wider confidence bands reflect the small variance in $\hat{\tau}_a^2$ across runs, explaining why the winner alternates between EB and pooled.
+
+% We hypothesized that when there is no heterogeneity across participants, complete pooling should perform best. In this setting, all participants share the same true means for each arm, so pooling their data reduces variance without introducing bias into the model. Any individualized decision algorithms are inefficient, especially in noisier settings. Therefore, without heterogeneity among participants \textit{within} each arm, complete pooling should achieve the lowest regret. 
+
+% Our findings in Figure~\ref{fig:no_heterogeneity} align with our hypothesis. We have no between-person variation, so pooling reduces variance and does not introduce any bias. Since $\tau_a = 0$, pooling operates under the correct model that $\theta_{i,a} = \mu_a$. However, unpooled TS ignores this and estimates per participant under the following model, which is noisy and leads to the greatest cumulative regret. Given that EB performs partial pooling, its performance is superior to completely unpooled TS and inferior to completely pooled TS.
+
+\subsubsectiontitle{Heterogeneous population} 
+
+\begin{figure}[h!]
+    \centering
+    \begin{subfigure}{0.75\linewidth}
+        \centering
+        \textit{True difference between arms with heterogeneity between participants}\par
+        \includegraphics[width=\linewidth, trim=0 1.9cm 0 0, clip]{midterm/final_graphs_midterm/sigma_sweep_final.png}
+    \end{subfigure}
+    \caption{Priors were set as $\mu_0 = \begin{pmatrix}
+    0 \\ 0
+\end{pmatrix}, \tau_0 = \begin{pmatrix}
+    1 & 0 \\ 0 & 1
+\end{pmatrix}$ with 500 runs per $\sigma$ value.}
+    \label{fig:heterogeneity}
+\end{figure}
+
+When there is heterogeneity between the $\theta_{i,a}$ means between participants for each arm, we hypothesize that EB's partial pooling strategy should perform best in the moderate range, while unpooled dominates in low noise-to-heterogeneity settings, and pooled dominates in high noise-to-heterogeneity settings.
+
+Unpooled TS performs best at low $\sigma$. When within-person noise is small relative to between-person heterogeneity, each participant's individual $\theta_{i,a}$ can be learned quickly and accurately. Since participants are actually different, individualized estimation is valuable and unpooled TS exploits this efficiently.
+
+Pooled TS starts with high baseline regret at low $\sigma$ before rising slowly. Pooling always assigns the population-optimal arm, ignoring individuals who might have preferences for a different arm. At high $\sigma$, individual learnign becomes so noisy that pooling across all $n$ participants is the most reliable way to identify the better arm, and pooled TS performs best.
+
+EB performs best in the intermediate rane. Here $\lambda_{i,a,t}$ tkaes on values between $0$ and $1$, balancing reliance on each participant's individual estimate against the shared population estimate. This partial pooling reduces noise without completely igonring individual heterogeneity, outperforming both extremes. As $\sigma$ grows, $\lambda_{i,a,t}\rightarrow 0$ and EB converges toward pooled TS behavior. This explains why when the noise-to-heterogeneity ratio is high, our finding stare similar to Figure~\ref{fig:no_heterogeneity}.
+
+% Our findings in Figure~\ref{fig:heterogeneity} align with our hypothesis. We notice that when the noise-to-heterogeneity ratio is high, our findings are similar to Figure~\ref{fig:no_heterogeneity}, with pooled TS performing the best. Meanwhile, when noise-to-heterogeneity ratio is low, unpooled TS performs the best—at high levels of heterogeneity, pooling does not confer much of an advantage as the participant-level parameters differ significantly from each other and can be learned individually. Finally, EB performs the best in the intermediate noise-to-heterogeneity region, as its partially pooling approach balances individualized learning to address heterogeneity between participants and pooling to combat noise.
+
+
+% When heterogeneity dominates, participants are genuinely very different and the within-person noise is relatively small. Pooling (as proven above) would be wrong because it forces everyone toward a shared mean which introduces bias. Unpooled TS learns each person separately which is correct since they are inherently different. EB may shrink too much and slightly bias estimates. When we have low heterogeneity, participants are very similar but observations are noisy so learning individually is inefficient and has high variability, so pooling the data reduces variance. When we have a moderate noise to heterogeneity ratio, participants are somewhat different and noise is non-negligible. Pooling our data introduces bias, but using unpooled TS has high variance thus using Empirical Bayes' balances the two by using shrinkage to reduce variance without completely ignored the real difference.  
+ 
+
+\subsectiontitle{Misspecified priors}
+
+We now explore a few additional interesting cases; specifically, in these settings we use inaccurate priors for the population-level mean and variance respectively. Specifically, we examine scenarios where the priors for the two arms are different, with one being more misspecified.
+
+\subsubsectiontitle{Misspecified prior means}
+
+\begin{figure}[h!]
+    \centering
+    \textit{Poor prior estimates of means}\par
+    \includegraphics[width=0.8\linewidth, trim=0 1.9cm 0 0, clip]{midterm/final_graphs_midterm/different_means_final.png}
+    \caption{Priors were set as $\mu_0 = \begin{pmatrix}
+    0 \\ 5
+\end{pmatrix}, \tau_0 = \begin{pmatrix}
+    1 & 0 \\ 0 & 1
+\end{pmatrix}$ with 500 per $\sigma$ value.}
+    \label{fig:different_means}
+\end{figure}
+
+Figure~\ref{fig:different_means} examines the performance of our action selection strategies under poor prior means, where we incorrectly expect a much greater treatment effect. Our findings show that unpooled TS performs best at low $\sigma$ and EB performs best at high $\sigma$, with pooled TS performing worst throughout.
+
+Unpooled TS is largely unaffected by the misspecificed prior at low $\sigma$. Because each participant's posterior updates quickly with low-noise observations, the incorrect prior mean is corrected rapidly by incoming data. Regret starts low and rises gradually as $\sigma$ increases.
+
+Pooled TS performs worst throughout, with high baseline regret even at low $\sigma$. It produces one shared estimate for all participants and is heavily reliant on the incorrect prior mean of $5$ for the second arm (action $a=1$), which takes longer to correct even with pooled data since $\tau = 1$ means that individual observations are noise signals of the population mean.
+
+EB starts with higher regret than unpooled TS at low $\sigma$ because $\lambda_{i,a,t} \approx 1$ causes it to rely on individual estimates, which are initialized at the misspecified prior mean of $5$ for the second arm. As individual data accumulates and corrects these estimates, EB's regret falls closer to unpooled TS. At high $\sigma$, $\lambda_{i,a,t} \rightarrow 0$ and EB shrinks toward the population-level estimate $\hat{\mu}_a$. Since there is a difference in arms, shrinking toward the better arm produces good arm selections, and EB outperforms pooled TS in this regime. 
+
+When there is a low noise-to-heterogeneity ratio, we have $\sigma_a^2 \ll \tau_a^2$, so our shrinkage $\lambda_{i,a,t} \approx 1$. In Section~\ref{shrink}, we established that when $\lambda_{i,a,t} \approx 1$, EB is heavily dependent on the individual estimates rather than the population-level parameter. Thus, EB behaves almost identically to unpooled TS, which is not affected by the misspecified prior. On the other hand, pooled TS is dramatically worse, as it produces one estimate for all participants, which is heavily reliant on an incorrect prior mean for the second arm. 
+
+At high noise-to-heterogeneity ratios, EB's $\lambda$ term shrinks towards 0; per Section~\ref{shrink}, the posterior means are drawn towards the misspecified population-level prior mean, resulting in worse performance.
+
+% Mathematically, this shows that the prior mean error matters most when $\lambda$ is small (when noise is high). Now, our true mean difference is $1$ but our prior belief is a mean difference of $5$ so $\hat{\mu}_2 \gg \mu_2$. Looking at the right side of the graph when $\sigma$ is large, the $\tau_a^2$ terms are negligible so we get that our shrinkage term $\lambda \rightarrow 0$. This leads our posterior mean to be:
+% \begin{align*}
+%     m_{i, 2, t} \approx \hat{\mu}_2
+% \end{align*}
+% This means that the posterior stays near $5$ instead of $1$ showing a consistent bias causing regret. This shows why EB does not perform well at high $\frac{\sigma}{\tau}$. \
+
+% In comparison, on the left side of the graph we have a small $\sigma$ which  leads to $\lambda \approx  \frac{\hat{\tau}_a^2}{\hat{\tau}_a^2}= 1$. This leads our posterior mean to be:
+% \begin{align*}
+%     m_{i, 2, t} \approx \hat{\theta}_{i,2,t}
+% \end{align*}
+% Thus, the data itself dominates and our bias disappears, showing why EB behaves better on the left (however not as well as complete pooling which assumes everyone to be the same which is more similar to the true environment in this situation).
+
+% \newpage
+\subsubsectiontitle{Misspecified prior variances}
+\label{mis_var}
+
+\begin{figure}[h!]
+    \centering
+    \textit{Poor prior estimates of variances}\par\includegraphics[width=0.8\linewidth, trim=0 1.9cm 0 0, clip]{midterm/final_graphs_midterm/different_taus_final.png}
+    \caption{Priors were set as $\mu_0 = \begin{pmatrix}
+    0 \\ 0
+\end{pmatrix}, \tau_0 = \begin{pmatrix}
+    1 & 0 \\ 0 & 5
+\end{pmatrix}$ with 500 per $\sigma$ value.}
+    \label{fig:different_var}
+\end{figure}
+
+Figure~\ref{fig:different_var} examines performance under misspecified prior variances while the true between-person variance is $\tau=1$ for both arms. The prior variance for the first arm is therefore far too large. Our findings show three regimes.
+
+Unpooled TS performs best at low $\sigma$ for the same reason as before: low noise allows individual estimates to converge quickly, and the misspecified prior variance for the second arm arm (action $a = 1$) is corrected rapidly by incoming data.
+
+Pooled TS performs best at high $\sigma$. It treats both arms symmetrically using a single shared posterior, and since the second arm is genuinely better, the shared posterior across all $n$ participants identifies this signal despite the noise, keeping regret relatively low.
+
+EB deteriorates severely at high $\sigma$ due to the asymmetric effect of the misspecif
+ied prior variance on the first arm. Because of the high prior variance, the individual posterior for the second arm initializes $v_{i,1} = 25$ and decreases slowly when $\sigma$ is large. The individual estimates $m_i,1$ therefore barely move from the prior mean fo $0$, so EB estimates $\hat{\tau}_1 \approx 0$. this drives $\lambda_{i,1,t} \approx 0$, fulling shrinking the second arm's estimate toward $\hat{\mu}_1 \approx 0$:
+
+$$m_{i,1,t} = \lambda_{i,1,t} \hat{\theta}_{i,1,t} + (1-\lambda_{i,1,t}) \hat{\mu}_1 \approx \hat{\mu}_1 \approx 0$$
+
+Since the first arm's (action $a=0$) prior is correctly specified, EB treats the two arms very differently. The first arm receives proper individual-level estimation while the second arm is collapsed to the population mean of $0$. With both arms appearing to have mean $\approx 0$, EB cannot exploit the fact that the second arm is the better arm, producing near-random arm selection at high regret. This asymmetric treatment is what causes EB to perform worse than unpooled TS at high $\sigma$.
+
+% examines the performance of action selection strategies under poor prior variances. This yields the following EB shrinkage terms for each arm:
+% \begin{align*}
+%     \lambda_1 &= \frac{1}{1 + \sigma^2} \ll 1\\
+%     \lambda_2 &= \frac{25}{25 + \sigma^2} \approx 1 
+% \end{align*}
+% As the shrinkage terms differ, EB treats the two arms differently. Arm 2 is almost unpooled, as the posterior estimate is largely dependent on $\hat{\theta}_{i,a,t}$. Meanwhile, arm 1 is almost pooled, as the estimate is largely dependent on $\hat{\mu}_a$, the population-level mean. Due to the greater level of uncertainty associated with arm 2 estimates, it may be over-explored.
+
+% Compared to EB, unpooled TS treats both arms symmetrically. As expected, unpooled TS performs worse when there is a higher noise-to-heterogeneity ratio, since it learns on the data of only one participant. However, while it may over-explore the second arm 
+% initially, it is consistently superior to EB as it is not biased by arm.
+
+% Pooled TS also treats both arms symmetrically; moreover, complete pooling ignores the inaccurately specified heterogeneity among participants, which allows it to perform better than unpooled TS at greater noise-to-heterogeneity ratios, when each participant's data is noisy and difficult to individually learn from.
+
+\sectiontitle{Contextual Bandit}
+\label{sec:context-var}
+
+\nys{This section below describes the same setting as the first section of \texttt{write-up.tex} in the \texttt{Nora/contextual bandit} folder in this same document; please refer to that document instead for the more up-to-date version.} 
+
+The contextual bandit setting differs from the vanilla MAB setting by the presence of a context variable, $c_{i,t}$, which influences the reward distribution. Specifically, this is a linear contextual bandit setting. 
+
+\subsectiontitle{True Environment}
+
+The reward is now influenced by a Bernoulli context variable, which varies by $i$ (participant) and by $t$ (time): $c_{i,t} \in \{0,1\}$ where $c_{i,t} \sim \text{Bern}(0.2)$. For example, $c_{i,t}$ could represent whether the person is feeling sick or healthy (or another factor relevant to the problem that may be modeled using a binary and may vary by time point and individual). The reward is generated as
+$$R_{i,t}(a) = \boldsymbol{\theta}_{i,a}^\top \boldsymbol{x}_{i,t} + \varepsilon_{i,t,a}=\theta_{i,a,0}+\theta_{i,a,1}c_{i,t}+\varepsilon_{i,t,a}$$
+where $\boldsymbol{x}_{i,t} = (1, c_{i,t})^\top$, $\boldsymbol{\theta_{i,a}} = (\theta_{i,a,0}, \theta_{i,a,1})^\top$, and participant-level noise is distributed as $\varepsilon_{i,t,a} \sim \mathcal{N}(0,\sigma_a^2)$. Note that $\theta_{i,a,0}$ corresponds to the mean of a participant's reward distribution at times $t$ when $c_{i,t}=0$, and $\theta_{i,a,0}+\theta_{i,a,1}$ corresponds to the mean at times $t$ when $c_{i,t}=1$.
+
+Furthermore, each participant's parameters are drawn from a population-level hyperdistribution: $$\boldsymbol{\theta}_{i,a} \sim \mathcal{N}(\boldsymbol{\mu}_a, \boldsymbol{\Sigma}_a)\text{, where }\boldsymbol{\mu}_a =
+\begin{pmatrix}
+\mu_{a,0} \\
+\mu_{a,1}
+\end{pmatrix} \text{ and } \boldsymbol{\Sigma}_a
+=
+\begin{pmatrix}
+\tau_{a,00}^2 & \tau_{a,01} \\
+\tau_{a,10} & \tau_{a,11}^2
+\end{pmatrix}$$
+
+\textit{Note.} The simulations for this environment have not yet been written; however, if a simulation were being performed, $\boldsymbol{\mu}_a$, and $\boldsymbol{\Sigma}_a$ will be determined beforehand. Then, the $\theta_{i,a}^\top$ will be drawn from this manually prespecified hyperdistribution. Individual-level noise $\sigma^2_{a}$ will also be manually specified in the environment beforehand. 
+
+\subsectiontitle{Learning Algorithm}
+
+At each time point, the learning algorithm will observe all of a participant's rewards up to time $t$ as well as the value of the participant's $c_{i,t}$ at each time point. The learning algorithm will use ridge regression to learn the coefficient vector for each participant with $\lambda=10^{-6}$. Inclusion of a regularization term guarantees matrix invertibility.
+
+Recall that $n_{i,a,t}$ is used to designate the number of times participant $i$ has selected action $a$ by time point $t$; the index $j=1, 2, \hdots, n_{i,a,t}$, designating the 1st time that participant chose action $a$, the 2nd time, the 3rd time, etc.
+\[
+\hat{\boldsymbol{\theta}}_{i,a,t}
+=
+\left(
+\lambda I +
+\sum_{j=1}^{n_{i,a,t}} \boldsymbol{x}_{i,j}\boldsymbol{x}_{i,j}^\top
+\right)^{-1}
+\left(
+\sum_{j=1}^{n_{i,a,t}} \boldsymbol{x}_{i,j} r_{i,a,j}
+\right)
+\]
+
+Idealistically, the learning algorithm's measure of uncertainty for each participant would be determined as follows:
+\[
+\boldsymbol{\Sigma}_{i,a,t}
+=
+\sigma_a^2
+\left(
+\lambda I +
+\sum_{j=1}^{n_{i,a,t}} \boldsymbol{x}_{i,j}\boldsymbol{x}_{i,j}^\top
+\right)^{-1}
+\]
+
+Above, uncertainty is a function of random noise associated with the observed reward output, which differs by arm ($\sigma^2_a$). However, as with the learning algorithm for the vanilla MAB that is described in Section~\ref{sec:learning}, the learning algorithm has no way of knowing $\sigma^2_a$. Thus, we estimate it using the residual variance as follows:
+\begin{align*}
+\hat{\sigma}_{a}^2
+&=
+\frac{
+\sum_{i=1}^n \sum_{j=1}^{n_{i,a,t}}
+\left(
+r_{i,a,j} - \boldsymbol{x}_{i,j}^\top \hat{\beta}_{i,a,t}
+\right)^2
+}{
+\sum_{i=1}^n (n_{i,a,t}-2)
+}\\
+\boldsymbol{\Sigma}_{i,a,t}
+&=
+\hat{\sigma}_{a}^2
+\left(
+\lambda I + \sum_{j=1}^{n_{i,a,t}} \boldsymbol{x}_{i,j}\boldsymbol{x}_{i,j}^\top
+\right)^{-1}
+\end{align*}
+The second term includes the inverse Gram matrix; the Gram matrix can be thought of as measuring the amount of information (counted as number of observations) we have under different contexts, with a larger Gram matrix resulting in a smaller inverse and therefore smaller measure of uncertainty.
+
+At each time point, the learning algorithm will send $(\hat{\boldsymbol{\theta}}_{i,a,t}, \boldsymbol{\Sigma}_{i,a,t})$ to the action selection strategy.
+% \begin{figure}[t]
+%     \centering
+%     \includegraphics[width=0.8\linewidth, trim=0 0 0 0, clip]{final_regret_vs_distance_ratio.png}
+%     \caption{Priors were set as $\mu_0 = [0,0], \tau_0 = [1,1]$ with 500 per $\sigma$ value.}
+%     \label{fig:ratio}
+% \end{figure}
+
+\subsectiontitle{Action Selection Strategy}
+
+For every combination of participant $i$ and action $a$, the EB action selection strategy receives $(\hat{\boldsymbol{\theta}}_{i,a,t}, \boldsymbol{\Sigma}_{i,a,t})$ from the learning algorithm. The action selection strategy believes that $\hat{\boldsymbol{\theta}}_{i,a,t}$ are an estimate of the true means of the parameters for each participant, which are distributed around the true mean:
+$$\hat{\boldsymbol{\theta}}_{i,a,t} \mid \boldsymbol{\theta}_{i,a}
+\sim
+\mathcal{N}(\boldsymbol{\theta}_{i,a}, \boldsymbol{\Sigma}_{i,a,t})$$
+
+Also, EB believes that all parameters are drawn from an underlying population hyperdistribution $\boldsymbol{\theta}_{i,a} \sim \mathcal{N}(\boldsymbol{\mu}_a, \boldsymbol{\Sigma}_a)$. Therefore, the true marginal distribution of these estimates are $\hat{\boldsymbol{\theta}}_{i,a,t}
+\sim
+\mathcal{N}(\boldsymbol{\mu}_a,\boldsymbol{\Sigma}_a+\boldsymbol{\Sigma}_{i,a,t})$. This parallels the vanilla MAB EB action selection strategy—$\boldsymbol{\Sigma}_a$ is the equivalent of $\tau^2_{a}$ (population-level variation) and $\boldsymbol{\Sigma}_{i,a,t}$ is the equivalent of $\sigma_{i,a}^2$ (individual-level noise).
+
+EB's prior estimates for the hyperdistribution at time point $t$ are designated as $\boldsymbol{\theta}_{i,a}\sim \mathcal{N}(\hat{\boldsymbol{\mu}}_a,\boldsymbol{\hat{\Sigma}}_a)$. To update its estimates for the hyperdistribution, we will follow a procedure parallel to empirical Bayes as described in Section~\ref{EB}, except with vector parameters. First, we will maximize $p(\hat{\boldsymbol{\theta}}_{i,a,t} \mid \boldsymbol{\mu}_a, \boldsymbol{\Sigma}_a)$ under the new observations of $\hat{\boldsymbol{\theta}}_{i,a,t}$.
+$$\ell(\boldsymbol{\mu}_a,\boldsymbol{\Sigma}_a)
+=
+-\frac12
+\sum_{i=1}^n
+\left[
+2\log(2\pi)
++
+\log\det(\boldsymbol{\Sigma}_a+\boldsymbol{\Sigma}_{i,a,t})
++
+(\hat{\boldsymbol{\theta}}_{i,a,t}-\boldsymbol{\mu}_a)^\top
+(\boldsymbol{\Sigma}_a+\boldsymbol{\Sigma}_{i,a,t})^{-1}
+(\hat{\boldsymbol{\theta}}_{i,a,t}-\boldsymbol{\mu}_a)
+\right]$$
+We will use profile log-likelihood to determine hyperparameter estimates
+$(\hat{\boldsymbol{\mu}}_a, \hat{\boldsymbol{\Sigma}}_a)
+=
+\arg\max_{\boldsymbol{\mu}_a,\,\boldsymbol{\Sigma}_a}
+\;\ell(\boldsymbol{\mu}_a, \boldsymbol{\Sigma}_a)$:
+\[
+\hat{\boldsymbol{\Sigma}}_a
+=
+\arg\max_{\boldsymbol{\Sigma}_a \succeq 0}
+\ell_p(\boldsymbol{\Sigma}_a), \quad \hat{\boldsymbol{\mu}}_a
+=
+\left(
+\sum_{i=1}^n
+(\hat{\boldsymbol{\Sigma}}_a+\boldsymbol{\Sigma}_{i,a,t})^{-1}
+\right)^{-1}
+\left(
+\sum_{i=1}^n
+(\hat{\boldsymbol{\Sigma}}_a+\boldsymbol{\Sigma}_{i,a,t})^{-1}
+\hat{\boldsymbol{\theta}}_{i,a,t}
+\right)
+\]
+Given these estimates, EB believes the posterior distribution of $\boldsymbol{\theta}_{i,a}$ to be:
+$$\boldsymbol{\theta}_{i,a}\mid \hat{\boldsymbol{\theta}}_{i,a,t}
+\sim
+\mathcal{N}\left(
+\left(
+\hat{\boldsymbol{\Sigma}}_a^{-1}
++
+\boldsymbol{\Sigma}_{i,a,t}^{-1}
+\right)^{-1}
+\left(
+\hat{\boldsymbol{\Sigma}}_a^{-1}\hat{\boldsymbol{\mu}}_a
++
+\boldsymbol{\Sigma}_{i,a,t}^{-1}\hat{\boldsymbol{\theta}}_{i,a,t}
+\right),
+\left(
+\hat{\boldsymbol{\Sigma}}_a^{-1}
++
+\boldsymbol{\Sigma}_{i,a,t}^{-1}
+\right)^{-1}
+\right)$$
+
+Finally, EB will calculate the posterior probability of one arm yielding the greater reward:
+$$\textrm{P}\!\left(
+\boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,1}
+>
+\boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,0}
+\right)
+=
+\Phi\!\left(
+\frac{
+\boldsymbol{x}_{i,t}^\top
+\left(
+\boldsymbol{\hat{\Sigma}}_1^{-1}
++
+\boldsymbol{\Sigma}_{i,1,t}^{-1}
+\right)^{-1}
+\left(
+\boldsymbol{\hat{\Sigma}}_1^{-1}\hat{\boldsymbol{\mu}}_1
++
+\boldsymbol{\Sigma}_{i,1,t}^{-1}\hat{\boldsymbol{\theta}}_{i,1,t}
+\right)
+-
+\boldsymbol{x}_{i,t}^\top
+\left(
+\boldsymbol{\hat{\Sigma}}_0^{-1}
++
+\boldsymbol{\Sigma}_{i,0,t}^{-1}
+\right)^{-1}
+\left(
+\boldsymbol{\hat{\Sigma}}_0^{-1}\hat{\boldsymbol{\mu}}_0
++
+\boldsymbol{\Sigma}_{i,0,t}^{-1}\hat{\boldsymbol{\theta}}_{i,0,t}
+\right)
+}{
+\sqrt{
+\boldsymbol{x}_{i,t}^\top
+\left(
+\boldsymbol{\hat{\Sigma}}_1^{-1}
++
+\boldsymbol{\Sigma}_{i,1,t}^{-1}
+\right)^{-1}
+\boldsymbol{x}_{i,t}
++
+\boldsymbol{x}_{i,t}^\top
+\left(
+\boldsymbol{\hat{\Sigma}}_0^{-1}
++
+\boldsymbol{\Sigma}_{i,0,t}^{-1}
+\right)^{-1}
+\boldsymbol{x}_{i,t}
+}
+}
+\right)$$
+and an action will be selected following the same procedure as in the vanilla MAB:
+$$a_{i,t}^* =
+\begin{cases}
+1, & \text{with probability }
+\textrm{P}\!\left(
+\boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,1}
+>
+\boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,0}
+\right) \\[0em]
+0, & \text{with probability }
+1-
+\textrm{P}\!\left(
+\boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,1}
+>
+\boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,0}
+\right)
+\end{cases}$$
+\sectiontitle{Conclusion}
+In this write-up, we explored a variety of vanilla MAB and contextual MAB scenarios. For vanilla MABs, simulations were also performed. In many scenarios, EB performs best in moderate conditions, whereas pooled and unpooled TS reflect two extremes. However, there are certain scenarios, such as the misspecified prior variances described in Section~\ref{mis_var}, EB's weaknesses may be exploited. Overall, however, our findings suggest that EB offers a compromise between completely unpooled and complete pooled algorithms—a \enquote{Goldilocks} method that balances the bias-variance trade-off.
+
+Next, we plan to test the algorithms in more complex environments that include a context variable. Specifically, we plan to test in environments with a context variables that varies by individual but not time (e.g. demographics), varies by time but not individual (e.g. weather in trials without staggered enrollment), and varies by both time and individual (Section~\ref{sec:context-var}). 
+
+% \bibliographystyle{plain}
+% \bibliography{bib}
+
+
+\end{document}

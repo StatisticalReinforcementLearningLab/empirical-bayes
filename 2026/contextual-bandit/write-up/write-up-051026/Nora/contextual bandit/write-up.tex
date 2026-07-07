@@ -1,0 +1,1793 @@
+\documentclass[letterpaper, 9pt]{extarticle}
+\input{preamble}
+\input{format}
+\input{commands}
+
+\usepackage{newpxmath}
+\usepackage[margin=0.95in]{geometry}
+% \usepackage{graphicx}
+\usepackage{listings}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{cancel}
+\usepackage{csquotes}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{indentfirst}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{color}
+\usepackage{framed}
+\usepackage{float}
+\usepackage{cleveref}
+\usepackage[
+backend=biber,
+style=verbose,
+autocite=footnote
+]{biblatex}
+\addbibresource{bib.bib}
+\usepackage{subcaption}
+\usepackage{overpic}
+\usepackage[most]{tcolorbox}
+\tcbuselibrary{listings}
+\usepackage{tikzsymbols}
+\usepackage{etoolbox}
+\usepackage{alltt}
+\usepackage{fancyvrb}
+
+\setlength{\parindent}{2em}
+\setlength{\textfloatsep}{10pt}
+\setlength{\floatsep}{8pt}
+\setlength{\intextsep}{8pt}
+
+% ---------------- colors ----------------
+\definecolor{softpurple}{HTML}{9C88B9}
+\definecolor{softblue}{HTML}{B8BDDE}
+\definecolor{darkblue}{RGB}{59, 90, 117}
+\definecolor{darkgray}{RGB}{250, 250, 250}
+\definecolor{mediumblue}{RGB}{93, 133, 158}
+\definecolor{lightblue}{RGB}{138, 167, 188}
+\definecolor{pastelblue}{RGB}{166, 190, 209}
+\definecolor{columbiablue}{RGB}{205, 215, 223}
+\definecolor{graytext}{RGB}{90, 90, 90}
+\definecolor{codebg}{RGB}{248, 248, 248}
+
+% extra light header color for code title bars
+\definecolor{codeheader}{RGB}{92, 92, 92}
+
+% custom colors for knitr-style verbatim
+\definecolor{shadecolor}{RGB}{255,255,255}
+\definecolor{Rcode}{RGB}{136, 18, 128}
+\definecolor{Rout}{RGB}{90, 90, 90}
+\definecolor{Rcomment}{RGB}{110,110,110}
+
+% ---------------- global listings style ----------------
+\lstdefinestyle{cppstyle}{
+  language=C++,
+  basicstyle=\ttfamily\footnotesize,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  numbersep=8pt,
+  backgroundcolor=\color{codebg},
+  showspaces=false,
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=true,
+  escapeinside={\%*}{*)},
+  commentstyle=\color{gray}\itshape,
+  stringstyle=\color{pastelblue}, keywordstyle=\color{softpurple}\bfseries,
+  keywordstyle=[2]\color{mediumblue}\bfseries,
+  morekeywords=[2]{Vec,IVec,IMat,Mat,Ten,M2,Env,RidgeState},
+  emph={inv2,add2,sub2,scale2,matvec2,quad2,outer2,project_psd,sample_mvn2,normal_cdf,set_environment,expected_reward,best_expected,init_state,update_state,ridge_estimate},
+  emphstyle=\color{darkblue}\bfseries,
+  xleftmargin=15pt,
+  xrightmargin=4pt,
+  aboveskip=0pt,
+  belowskip=0pt
+}
+
+\lstset{style=cppstyle}
+
+% ---------------- code box with header bar ----------------
+\newtcblisting{codechunk}[2][]{%
+  enhanced,
+  breakable,
+  sharp corners,
+  boxrule=0pt,
+  colback=codebg,
+  colframe=codebg,
+  colbacktitle=codeheader,
+  coltitle=darkgray,
+  fonttitle=\sffamily\small\bfseries,
+  title={Algorithm \themysubsubsection.\ #2},
+  left=0pt,
+  right=0pt,
+  top=5pt,
+  bottom=5pt,
+  boxsep=0pt,
+  toptitle=4pt,
+  bottomtitle=4pt,
+  lefttitle=3pt,
+  listing only,
+  listing engine=listings,
+  listing options={style=cppstyle},
+  #1
+}
+
+\renewcommand\lstlistingname{Code}
+
+\captionsetup[lstlisting]{labelsep=period, labelfont={sf,small,bf}, textfont={sf,small}}
+\captionsetup[figure]{labelsep=period, labelfont=normalfont, textfont=normalfont}
+
+\newtcolorbox{notebox}[1][]{
+  enhanced,
+  breakable,
+  round corners,
+  boxrule=0.4pt,
+  colback=gray!4,
+  colframe=gray!35,
+  colbacktitle=gray!18,
+  coltitle=black,
+  fonttitle=\sffamily\small,
+  title=#1,
+  width=0.94\linewidth,
+  center,
+  left=4pt,
+  right=4pt,
+  top=5pt,
+  bottom=5pt,
+  boxsep=3pt,
+  fontupper=\small
+}
+
+% ---------------- patch verbatim ----------------
+\makeatletter
+\patchcmd{\@Verbatim}{\fbox}{\color{black}}{}{}
+\makeatother
+
+% ---------------- knitr verbatim environments ----------------
+\DefineVerbatimEnvironment{Sinput}{Verbatim}{fontshape=sl,formatcom=\color{Rcode},commandchars=\\\{\}}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{formatcom=\color{Rout}}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{formatcom=\color{Rcode}}
+
+% ---------------- custom comment commands ----------------
+\newcounter{samcommentcounter}
+\newcounter{nyscommentcounter}
+\newcounter{btkcommentcounter}
+
+\definecolor{nyscolor}{HTML}{a63a47}
+
+\newcommand{\sam}[1]{%
+  \stepcounter{samcommentcounter}%
+  {\color{blue} [\textbf{SAM} (\thesamcommentcounter): {#1}]}%
+}
+
+\newcommand{\nys}[1]{%
+  \stepcounter{nyscommentcounter}%
+  {\color{nyscolor} [\textbf{NYS} (\thenyscommentcounter): {#1}]}%
+}
+
+\newcommand{\btk}[1]{%
+  \stepcounter{btkcommentcounter}%
+  {\color{red} [\textbf{BTK} (\thebtkcommentcounter): {#1}]}%
+}
+
+% ---------------- custom section counters ----------------
+\newcounter{mysection}
+\newcounter{mysubsection}[mysection]
+\newcounter{mysubsubsection}[mysubsection]
+
+\renewcommand{\themysection}{\arabic{mysection}}
+\renewcommand{\themysubsection}{\themysection.\arabic{mysubsection}}
+\renewcommand{\themysubsubsection}{\themysubsection.\arabic{mysubsubsection}}
+% \newcounter{codechunk}[mysubsubsection]
+% \renewcommand{\thecodechunk}{\themysubsubsection.\arabic{codechunk}}
+
+\newcommand{\sectiontitle}[1]{%
+  \refstepcounter{mysection}%
+  \setcounter{mysubsection}{0}%
+  \setcounter{mysubsubsection}{0}%
+  \addcontentsline{toc}{section}{\themysection\hspace{0.8em}#1}%
+  \vspace{0.6em}%
+  \noindent{\textsf{\large \textbf{\themysection\hspace{0.8em}#1}}}\par\vspace{0.4em}%
+}
+
+\newcommand{\subsectiontitle}[1]{%
+  \refstepcounter{mysubsection}%
+  \setcounter{mysubsubsection}{0}%
+  \addcontentsline{toc}{subsection}{\themysubsection\hspace{0.6em}#1}%
+  \vspace{0.3em}%
+  \noindent{\large \themysubsection\hspace{0.6em}#1}\par%
+}
+
+\newcommand{\subsubsectiontitle}[1]{%
+  \refstepcounter{mysubsubsection}%
+  \addcontentsline{toc}{subsubsection}{\themysubsubsection\hspace{0.5em}#1}%
+  \vspace{0.3em}%
+  \noindent{\normalsize \themysubsubsection\hspace{0.6em}#1}\par%
+}
+
+\geometry{letterpaper}
+\hypersetup{colorlinks=false, allcolors=blue}
+
+\begin{document}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\footnotesize{COMPSCI 91R}}
+\fancyfoot[C]{\thepage}
+%\renewcommand{\headrulewidth}{0pt}
+
+\begin{center}
+{\huge \textsf{\textbf{Empirical Bayes}} \par
+Contextual Bandit Environments}
+
+\vspace{1em}   % increase space between title and names
+
+Nora Y. Sun and Betina T. Kreiman\\
+\vspace{0.05cm}
+Statistical Reinforcement Learning Lab
+\end{center}
+
+See \href{https://docs.google.com/presentation/d/1_fpqbWhbSr6PqojAD5nI7F5XB7wxYRbpy_gOvZfLmjQ/edit?usp=sharing}{slides}.\autocite{sun_kreiman_2026_slides}
+
+\sectiontitle{Participant-Specific and Time-Variant Context}
+\label{sec:context-var}
+
+In this report, we introduce a context variable the impacts, which participant's response to actions selected for it by the reinforcement learning algorithm. 
+
+Specifically, we suppose that $c_{i,t}$ describes whether each individual is sick or healthy and varies by both time $t$ and participant $i$. For example, $c_{i,t}$ could represent \textit{whether the person is feeling sick or healthy}, or another factor relevant to the problem that may be modeled using a binary and may vary by time point and individual. 
+
+\sam{ We are often interested in the regret for smaller values of $T$ as this tells us how well the algorithm is performing early in a deployment.   Like $T=50, 100, 150$.  We usually include a larger value of $T$ (like $T=200, 500, 1000$) just to check if the code is correct (this is because we often have a good idea of how the algorithm should perform if the tradeoff between bias and variance is not too bad).  Sample sizes might be $n=50, 100, 150$.  Rarely does everyone experience the intervention at the same calendar time  (aka, incremental recruitment, like say 5 people start the intervention every $k$ time points).  If we are able to make good progress then we will need to consider this.}
+
+In the below setting, we assume that the learning algorithm updates and the action selection strategy chooses an action at every time point $t$. %\nys{Clarified action selection/updates occur at every time point.}
+
+\subsectiontitle{True Environment}
+
+ The reward is influenced by a Bernoulli context variable, which varies by $i$ (participant) and by $t$ (time): $c_{i,t} \in \{0,1\}$ where $c_{i,t} \sim \text{Bern}(0.2)$. The reward is generated as
+$$R_{i,t}(a) = \boldsymbol{\theta}_{i,a}^\top \boldsymbol{x}_{i,t} + \varepsilon_{i,t,a}=\theta_{i,a,0}+\theta_{i,a,1}c_{i,t}+\varepsilon_{i,t,a}$$
+where $\boldsymbol{x}_{i,t} = (1, c_{i,t})^\top$, $\boldsymbol{\theta_{i,a}} = (\theta_{i,a,0}, \theta_{i,a,1})^\top$, and participant-level noise is distributed as $\varepsilon_{i,t,a} \sim \mathcal{N}(0,\sigma_a^2)$.  The   $\{\varepsilon_{i,t,a} \}_{i\in [n], t\in[T], a\in \{0,1\}} $ are independent. Note that $\theta_{i,a,0}$ corresponds to the mean of a participant's reward distribution at times $t$ when $c_{i,t}=0$, and $\theta_{i,a,0}+\theta_{i,a,1}$ corresponds to the mean at times $t$ when $c_{i,t}=1$.
+
+Furthermore, each participant's parameters are drawn from a population-level hyperdistribution: $$\boldsymbol{\theta}_{i,a} \sim \mathcal{N}(\boldsymbol{\mu}_a, \boldsymbol{\Sigma}_a)\text{, where }\boldsymbol{\mu}_a =
+\begin{pmatrix}
+\mu_{a,0} \\
+\mu_{a,1}
+\end{pmatrix} \text{ and } \boldsymbol{\Sigma}_a
+=
+\begin{pmatrix}
+\tau_{a,00}^2 & \tau_{a,01} \\
+\tau_{a,10} & \tau_{a,11}^2
+\end{pmatrix}$$
+
+The $\{\theta_{i,a}\}_{i\in[n],a\in \{0,1\}} $ are independent.  \sam{Note that $\tau_{a,01} =
+\tau_{a,10}$.}
+
+%\nys{I have added this section specifying that we are assuming the coefficients for different actions to be uncorrelated and responses across time points to be uncorrelated.} \sam{the text in the above sentence does this for you.} \nys{Thanks! I've commented out my original paragraph.}
+
+Note that this is unrealistic in certain settings, as we might expect a participant's response under $a=1$ to be correlated with their response under $a=0$ due to characteristics of the participant. Also, we do not simulate the fact that participant's rewards might be correlated across time point $t$ (e.g., the treatment may become less effective over time as the participant grows tired of it).
+
+\sam{Notes for Susan:
+The person-specific main effect of treatment and the interaction effect is:
+$\begin{pmatrix}
+\theta_{i,1,0}- \theta_{i,0,0}\\
+\theta_{i,1,1}- \theta_{i,0,1}
+\end{pmatrix}$.
+
+And the heterogeneity across people in the main effect of treatment and the interaction effect is:
+$$\begin{pmatrix}
+\theta_{i,1,0}- \theta_{i,0,0}\\
+\theta_{i,1,1}- \theta_{i,0,1}
+\end{pmatrix} \sim \mathcal{N}\left(
+\begin{pmatrix}
+\mu_{1,0}-\mu_{0,0} \\
+\mu_{1,1}-\mu_{0,1}
+\end{pmatrix}, 
+\begin{pmatrix}
+\tau_{0,00}^2 +\tau_{1,00}^2  & \tau_{1,01} -\tau_{0,01}\\
+\tau_{1,01} -\tau_{0,01} & \tau_{1,11}^2+\tau_{0,11}^2
+\end{pmatrix}\right)$$
+
+Moving toward more realistic environments we might set $\sigma^2_0=\sigma^2_1=\sigma^2=1$,  $|\mu_{1,0}-\mu_{0,0}|<0.5\sigma$, $|\mu_{1,1}-\mu_{0,1}|=0.5\sigma|\mu_{1,0}-\mu_{0,0}|$, $\tau_{0,00}^2 +\tau_{1,00}^2 =1.0\sigma^2$ and $\tau_{1,11}^2+\tau_{0,11}^2=\tau_{0,00}^2 +\tau_{1,00}^2$ and lastly $|\tau_{1,01} -\tau_{0,01}|^2< (\tau_{0,00}^2 +\tau_{1,00}^2)(\tau_{1,11}^2+\tau_{0,11})$.  Distribution of context between $0.25-0.75$.  
+
+Later we will use the \href{https://github.com/klasnja/HeartStepsV1}{HeartSteps} data to set more realistic values.  This will also help us set the within person correlation in rewards across time..
+
+Conjectures if the learning algorithm's model is a good approximation to the environment (including the learning alg using the same model which is the case below) follow.  I know that the distribution of the context will influence conjectures below.  Right now I'm assuming the distribution of the binary context, $c_i$ or $c_{i,t}$ is close to $0.5$.
+\begin{enumerate}
+    \item Average treatment (i.e., $\mu_{1,0}-\mu_{0,0}$), interaction (i.e., $ 
+\mu_{1,1}-\mu_{0,1}$), effects at large values (see above for limits). $n$ is moderate to large. If $\tau_{1,11}^2+\tau_{0,11}^2$ is large relative to $\sigma^2$  and $T$ is big enough then unpooled T-S has best policy at time $T$.  However at times $t<T$ (earlier in study), E-B should have best policy at time $t$.  For $t$ really small and $n$  sufficiently large, pooled T-S should have best policy at time $t$.
+\item Average treatment (i.e., $\mu_{1,0}-\mu_{0,0}$), interaction (i.e., $ 
+\mu_{1,1}-\mu_{0,1}$), effects at large values (see above for limits).  $n$ is moderate to small.   If $\tau_{1,11}^2+\tau_{0,11}^2$ is large relative to $\sigma^2$  and $T$ is big enough then unpooled T-S has best policy at time $T$.  The times $t$  where E-B outperforms both unpooled T-S and pooled T-S becomes smaller relative to conjecture 1. above. If $n$ is small, then not sure if  pooled T-S will have best policy even at very small times $t$.   
+        \item Average treatment (i.e., $\mu_{1,0}-\mu_{0,0}$), interaction (i.e., $ 
+\mu_{1,1}-\mu_{0,1}$), effects at small values. $n$ is moderate to large. If $\tau_{1,11}^2+\tau_{0,11}^2$ is large relative to $\sigma^2$  and $T$ is big enough then unpooled T-S has best policy at time $T$.  The times $t$  where E-B outperforms both unpooled T-S and pooled T-S becomes larger relative to conjecture 1. above.
+Similarly the times $t$  where pooled T-S should have best policy  becomes larger relative to conjecture 1. above.  
+\item
+Average treatment (i.e., $\mu_{1,0}-\mu_{0,0}$), interaction (i.e., $ 
+\mu_{1,1}-\mu_{0,1}$), effects at small values. $n$ is moderate to small. If $\tau_{1,11}^2+\tau_{0,11}^2$ is large relative to $\sigma^2$  and $T$ is big enough then unpooled T-S has best policy at time $T$.  The times $t<T$  where E-B outperforms both unpooled T-S and pooled T-S becomes smaller relative to conjecture 2. above.
+Similarly if $n$ is small, then not sure if  pooled T-S will have best policy even at very small times $t$. 
+\end{enumerate}
+
+
+\begin{tabular}{|l|c|r|l|c|} 
+\hline
+   Factors &  &  & \\ 
+  \hline  \hline
+  Average treatment effect & large & large  & large \\ 
+  (i.e., $\mu_{1,0}-\mu_{0,0}$) &  &  & \\ 
+  interaction (i.e., $ 
+\mu_{1,1}-\mu_{0,1}$) &  &  & \\ 
+\hline 
+  Heterogeneity, & large & large
+   & large \\ 
+Size of $\tau_{1,11}^2+\tau_{0,11}^2$ relative to $\sigma^2$ & &  & \\
+  \hline
+  Time $t$ & large & moderate & small \\ 
+  \hline
+    Sample Size, $n$ & small to large & small to large  & small to large\\ 
+  \hline
+    \hline
+    Best Policy & Unpooled T-S& E-B & Pooled T-S\\ 
+  \hline
+\end{tabular}
+
+As the average treatment/interaction effect decreases, the small/moderate/large meanings of time $t$ become larger.  As the between-person heterogeneity decreases,  the small/moderate/large meanings of time $t$ become larger.  As the sample size $n$ decreases, the small/moderate/large meanings of time $t$ become smaller. 
+}
+
+% It is important to note that $\boldsymbol{\theta}_{i,a=0} \perp \!\!\! \perp \boldsymbol{\theta}_{i,a=1}$. 
+%\sam{Are we also assuming that $\tau_{a,01}=\tau_{a,10}=0$?} \nys{Not as of right now, but the EB action selection strategy does assume this in the second scenario where $c_i$ doesn't change with time when EB is estimating the population-level hyperparameters.} 
+
+\subsectiontitle{Learning Algorithm}
+\label{learning-alg-unpooled}
+
+\textit{The learning algorithm does not have knowledge of the above environment.} The learning algorithm believes that rewards are generated using the following model:
+$$R_{i,t}(a) = \boldsymbol{\theta}_{i,a}^\top \boldsymbol{x}_{i,t} + \varepsilon_{i,t,a}=\theta_{i,a,0}+\theta_{i,a,1}c_{i,t}+\varepsilon_{i,t}$$
+where $\boldsymbol{x}_{i,t} = (1, c_{i,t})^\top$, $\boldsymbol{\theta_{i,a}} = (\theta_{i,a,0}, \theta_{i,a,1})^\top$, and participant-level noise is distributed as $\varepsilon_{i,t} \sim \mathcal{N}(0,\sigma_a^2)$.  The   $\{\varepsilon_{i,t} \}_{i\in [n], t\in[T]} $ are assumed independent. (While the learning algorithm's model happens to align with the true underlying environment in this case, this alignment is not guaranteed.) \sam{Usually you would use different greek letters for the learning algorithm's model so that the reader does not think that the learning algorithm has access to the environment's model.  Note here the learning algorithm and the environment are using the same model but that does not  happen in real life.  All learning algorithms approximate the real life environment in some way.}
+
+
+The learning algorithm, which will be paired with empirical Bayes and unpooled contextual Thompson Sampling action selection strategies, is performed individually on each participant's data. When producing estimates for individual $i$, it only sees individual $i$'s data and no other participant's. For the pooled learning algorithm for pooled Thompson sampling, please see Section~\ref{pooled-learning}.
+
+At each time point, the learning algorithm will observe all of a participant's $(r_{i,a=a_{i,j}, j}, c_{i,j})$ up to time $j<t$ 
+%\sam{ $r_{i,a=a_{i,j}, j}, c_{i,j}$'s up to time $j<t$} \nys{Added!} 
+as well as the value of the participant's $c_{i,t}$ at each time point. The learning algorithm will use ridge regression to learn the coefficient vector for each participant with $\lambda=10^{-6}$. The learning algorithm separately estimates the bivariate vector $(\hat{\boldsymbol{\theta}}_{i,a,t}, \boldsymbol{\Sigma}_{i,a,t})$ for $a=0$ and $a=1$ separately, assuming the parameters for the two actions for each participant are independent.  %\sam{what is \enquote{they} in prior sentence---participants?} \nys{\enquote{They} are $\boldsymbol{\Sigma}_{i,a=0,t}$ and $\boldsymbol{\Sigma}_{i,a=1,t}$.}
+
+%\nys{I have revised this section to specify the ridge regression prior.} 
+We can interpret the ridge regression through a Bayesian lens. Before any learning occurs, the prior used by the ridge regression is
+$$\boldsymbol{\theta}_{i,a} \sim \mathcal{N}(0, \tau_{0,a}^2 I), \quad \lambda = \frac{\sigma_a^2}{\tau_{0,a}^2}
+=10^{-6}$$
+where $\lambda$ represents the signal to noise ratio, which we set very close to 0; this minimizes the weight given to our prior, making us rely mostly on our estimate. From the Bayesian perspective, the prior variance $\tau^2_{0,a}=\lambda \sigma_{a}^2$. In other words, the prior variance is $10^{-6}$ times the unknown $\sigma_a^2$. 
+%\sam{This Bayesian perspective, with $\lambda = 10^{-6}$ implies that you are selecting the prior variance, $\tau_0^2$ to be equal to  $10^{6}$ times the unknown $\sigma_a^2$.  That is,  in fact, $\tau_0^2$ is $\tau_{0,a}^2$. } \nys{Corrected and clarified!}
+%\nys{Clarify it's not indexed by $i$ but can be.} 
+Above, we decided not to index parameters like $\lambda$ by $i$, meaning our prior does not differ by individual. However, if we so choose, we can vary $\lambda$ by $i$, tuning this hyperparameter.
+
+Then, the learning algorithm's uncertainty about its estimates can be described as follows: 
+\[
+\boldsymbol{\Sigma}_{i,a,t}
+=
+\left(
+\frac{1}{\tau_0^2} I
++
+\frac{1}{\sigma_{i,a}^2}
+\sum_{j=1}^{n_{i,a,t}} \boldsymbol{x}_{i,j}\boldsymbol{x}_{i,j}^\top
+\right)^{-1}
+=
+\sigma_{i,a}^2
+\left(
+\frac{\sigma_{i,a}^2}{\tau_0^2} I
++
+\sum_{j=1}^{n_{i,a,t}} \boldsymbol{x}_{i,j}\boldsymbol{x}_{i,j}^\top
+\right)^{-1}
+=
+\sigma_{i,a}^2
+\left(
+\lambda I
++
+\sum_{j=1}^{n_{i,a,t}} \boldsymbol{x}_{i,j}\boldsymbol{x}_{i,j}^\top
+\right)^{-1}.
+\]
+where $\boldsymbol{x}_{i,j} = (1, c_{i,j})^\top$ and $n_{i,a,t}$ is the number of times the algorithm has selected action $a$ for participant $i$ up to time $t$.  
+%\sam{participants do not select the actions.....} \nys{Corrected!}
+
+From these expressions, we can see that adding $\lambda I$ in ridge regression ensures invertibility early on during the trial, when the participant may not have pulled an arm more than twice.
+
+The learning algorithm must also produce the estimate that the measure of uncertainty describes. Recall that $n_{i,a,t}$ is used to designate the number of times participant $i$ has selected action $a$ by time point $t$; the index $j=1, 2, \hdots, n_{i,a,t}$, designating the 1st time that participant chose action $a$, the 2nd time, the 3rd time, etc. We use ridge regression to separately estimate each coefficient as follows: 
+\[
+\hat{\boldsymbol{\theta}}_{i,a,t}
+=
+\left(
+\lambda I +
+\sum_{j=1}^{n_{i,a,t}} \boldsymbol{x}_{i,j}\boldsymbol{x}_{i,j}^\top
+\right)^{-1}
+\left(
+\sum_{j=1}^{n_{i,a,t}} \boldsymbol{x}_{i,j} r_{i,a,j}
+\right)
+\]
+
+%\nys{I have corrected the residual variance to avoid pooling over participants.} 
+After obtaining the estimate, the learning algorithm will use the equation for $\boldsymbol{\Sigma}_{i,a,t}$ that we specified above to determine its measure of uncertainty for each estimate, approximating the true noise with the residual variance:
+\[
+\boldsymbol{\Sigma}_{i,a,t}
+=
+\hat{\sigma}_{i,a,t}^2
+\left(
+\lambda I
++
+\sum_{j=1}^{n_{i,a,t}} \boldsymbol{x}_{i,j}\boldsymbol{x}_{i,j}^\top
+\right)^{-1}, \quad \hat{\sigma}_{i,a,t}^2
+=
+\frac{
+\sum_{j=1}^{n_{i,a,t}}
+\left(
+r_{i,a,j}
+-
+\boldsymbol{x}_{i,j}^\top \hat{\boldsymbol{\theta}}_{i,a,t}
+\right)^2
+}{
+n_{i,a,t}-2
+}
+\]
+
+At each time point, the learning algorithm will send bivariate vector $(\hat{\boldsymbol{\theta}}_{i,a,t}, \boldsymbol{\Sigma}_{i,a,t})$ to the action selection strategy. 
+%\nys{I have added this section to clarify that we are sending four parameter estimates per individual.} 
+The learning algorithm sends a separate set of $(\hat{\boldsymbol{\theta}}_{i,a,t}, \boldsymbol{\Sigma}_{i,a,t})$ for $a=0$ and $a=1$; thus, it actually sends four coefficient estimates per individual. The current learning algorithm independently estimates $\boldsymbol{\Sigma}_{i,a,t}$ for $a=0$ and $a=1$.
+\label{ridge-alg}
+\begin{codechunk}{Ridge Regression}
+// in practice, the learning alg maintains sufficient stats
+struct RidgeState {
+    M2 XtX;  // sum x x^T
+    Vec Xty; // sum x*r
+    Vec r_hist;
+    std::vector<Vec> x_hist;
+    int n_obs; // number of observations 
+};
+
+// at t = 0: X^T X = 0, X^T y = 0, and n_{i,a,t} = 0
+inline void init_state(RidgeState& s) {
+    s.XtX = {0,0,0,0};
+    s.Xty = {0.0,0.0};
+    s.n_obs = 0;
+}
+
+// after observing a new data point (x, r), update the running sums:
+// X^T X <- X^T X + x x^T
+// X^T y <- X^T y + x r
+inline void update_state(RidgeState& s, const Vec& x, double r) {
+    s.XtX.a += x[0]*x[0]; s.XtX.b += x[0]*x[1];
+    s.XtX.c += x[1]*x[0]; s.XtX.d += x[1]*x[1];
+    s.Xty[0] += x[0]*r;   s.Xty[1] += x[1]*r;
+    s.x_hist.push_back(x);
+    s.r_hist.push_back(r);
+    s.n_obs++;
+}
+
+// returns (theta_hat, Sigma_hat)
+inline void ridge_estimate(const RidgeState& s, double lam, const Vec& mu_prior,
+                            Vec& theta_hat, M2& Sigma_hat) {
+    M2 G = { s.XtX.a+lam, s.XtX.b, s.XtX.c, s.XtX.d+lam };
+    M2 Ginv = inv2(G);
+    theta_hat = matvec2(Ginv, s.Xty);
+    // if no data yet, set as prior mean
+    if (s.n_obs == 0) theta_hat = mu_prior;
+    // estimate residual variance
+    double sigma2 = 1.0;
+    // calculates Sigma_{i,a,t} using residual variance estimate
+    if (s.n_obs > 2) {
+        double rss = 0.0;
+        for (int j=0; j<s.n_obs; ++j) {
+            double pred = s.x_hist[j][0]*theta_hat[0] + s.x_hist[j][1]*theta_hat[1];
+            double e = s.r_hist[j] - pred;
+            rss += e*e;
+        }
+        sigma2 = rss / (s.n_obs - 2);
+        // sets very small values to 1e-8
+        if (sigma2 < 1e-8) sigma2 = 1e-8;
+    }
+    Sigma_hat = scale2(Ginv, sigma2);
+}
+\end{codechunk}
+
+\subsectiontitle{Action Selection Strategy}
+
+We will compare empirical Bayes' performance with unpooled and pooled contextual Thompson sampling action selection algorithms. 
+
+\subsubsectiontitle{Empirical Bayes}
+\label{action}
+
+%\nys{I have revised this section to better specify EB's perspective.}
+At each time $t$, for every combination of participant $i$ and action $a$, the EB action selection strategy receives a set of \textit{data points}—the bivariate vector $(\hat{\boldsymbol{\theta}}_{i,a,t}, \boldsymbol{\Sigma}_{i,a,t})$—from the learning algorithm. This is the data EB will use at time $t$.
+
+The action selection strategy believes that $\hat{\boldsymbol{\theta}}_{i,a,t}$ are an unbiased estimate of individual $i$'s coefficients (in the model specified by the learning algorithm), and they are distributed around the individual $i$'s coefficients as follows:
+$$\hat{\boldsymbol{\theta}}_{i,a,t} \mid \boldsymbol{\theta}_{i,a}
+\sim
+\mathcal{N}(\boldsymbol{\theta}_{i,a}, \boldsymbol{\Sigma}_{i,a,t})$$
+For the future it is useful to realize that  the above can be written as a \textit{multivariate} linear regression:
+$$\hat{\boldsymbol{\theta}}_{i,a,t}= \boldsymbol{\theta}_{i,a} + \epsilon_{i,a}$$
+where the bivariate distribution of  $\epsilon_{i,a}$ is $\mathcal{N}(\boldsymbol{0}, \boldsymbol{\Sigma}_{i,a,t})$.
+
+Furthermore, EB believes that all the true coefficients are drawn from an underlying population hyperdistribution $\boldsymbol{\theta}_{i,a} \sim \mathcal{N}(\boldsymbol{\mu}_a, \boldsymbol{\Sigma}_a)$ (i.e., the Bayesian aspect of EB). Thus, after being provided these estimates, the posterior distribution of the \textit{true} $\boldsymbol{\theta}_{i,a}$ must be:
+$$\boldsymbol{\theta}_{i,a}\mid \hat{\boldsymbol{\theta}}_{i,a,t}
+\sim
+\mathcal{N}\left(
+\left(
+\boldsymbol{\Sigma}_a^{-1}
++
+\boldsymbol{\Sigma}_{i,a,t}^{-1}
+\right)^{-1}
+\left(
+\boldsymbol{\Sigma}_a^{-1}\boldsymbol{\mu}_a
++
+\boldsymbol{\Sigma}_{i,a,t}^{-1}\hat{\boldsymbol{\theta}}_{i,a,t}
+\right),
+\left(
+\boldsymbol{\Sigma}_a^{-1}
++
+\boldsymbol{\Sigma}_{i,a,t}^{-1}
+\right)^{-1}
+\right)$$
+The above can be derived using the Normal-Normal Conjugacy and only applies to Normal cases. See pages $3-4$ for a derivation.\autocite{sun_steps} In other cases, another posterior may be derived. 
+
+%\nys{I have re-organized this section to first state the posterior distribution and then mention the empirical hyperparameter estimation.} 
+In a fully Bayesian set-up, the algorithm would be aware of and use the true population hyperparameters to determine the posterior distribution of the individual means. However, in this setting, we assume that the true population hyperparameters are unknown; thus, we must \textit{empirically} estimate these hyperparameters, making this algorithm EB. 
+
+EB's prior estimates for the population-level hyperdistribution will be designated as $\mathcal{N}(\hat{\boldsymbol{\mu}}_a,\boldsymbol{\hat{\Sigma}}_a)$. In this scenario, 
+%EB believes that 
+the marginal distribution of the data is $\hat{\boldsymbol{\theta}}_{i,a,t}
+\sim
+\mathcal{N}(\boldsymbol{\mu}_a,\boldsymbol{\Sigma}_a+\boldsymbol{\Sigma}_{i,a,t})$, where we have variation due to population-level heterogeneity and measurement noise, the latter of which is given to EB by the learning algorithm. This posterior derives from the fact that we have two \textit{independent} and Normally distributed sources of error in the model: 
+\begin{align*}
+\text{Individual-level noise} \sim \mathcal{N}(0,\boldsymbol{\Sigma}_{i,a,t})\\
+\text{Population heterogeneity} \sim \mathcal{N}(0,\boldsymbol{\Sigma}_a)
+\end{align*}
+The former is measurement error, while the latter is true variability; collectively, they explain all variation in the estimates produced by the learning algorithm.  %\sam{very nice...}
+$$\hat{\boldsymbol{\theta}}_{i,a,t} = \boldsymbol{\mu}_a + \left(\boldsymbol{\theta}_{i,a} - \boldsymbol{\mu}_a\right) + \left(\hat{\boldsymbol{\theta}}_{i,a,t} - \boldsymbol{\theta}_{i,a}\right), \quad \mathrm{Var}(\hat{\boldsymbol{\theta}}_{i,a,t}) = \mathrm{Var}(\boldsymbol{\delta}_i) + \mathrm{Var}(\mathbf{e}_i) = \boldsymbol{\Sigma}_a + \boldsymbol{\Sigma}_{i,a,t}$$
+For a full derivation of this marginal distribution, please see equation 8 (p. 78) and equation 18 (p. 80) \autocite{doi:10.3102/10769986010002075}. The marginalization process is shown in more detail in Section~\ref{action2}. Again, note that the marginal distribution may differ in other settings. 
+
+Using this marginal distribution, EB can estimate the hyperdistribution by maximizing $p(\hat{\boldsymbol{\theta}}_{i,a,t} \mid \boldsymbol{\mu}_a, \boldsymbol{\Sigma}_a+\boldsymbol{\Sigma}_{i,a,t})$, which is the likelihood of observing the data given by the learning algorithm, $\hat{\boldsymbol{\theta}}_{i,a,t}$. %\nys{Specifying how we assume independent parameters under each action.} 
+Again, please recall that as we assume the hyperparameters and parameters beneath $a=1$ and $a=0$ are independent, our likelihood only sums over individuals $i$ and not action $a$. 
+$$\ell(\boldsymbol{\mu}_a,\boldsymbol{\Sigma}_a)
+=
+-\frac12
+\sum_{i=1}^n
+\left[
+2\log(2\pi)
++
+\log\det(\boldsymbol{\Sigma}_a+\boldsymbol{\Sigma}_{i,a,t})
++
+(\hat{\boldsymbol{\theta}}_{i,a,t}-\boldsymbol{\mu}_a)^\top
+(\boldsymbol{\Sigma}_a+\boldsymbol{\Sigma}_{i,a,t})^{-1}
+(\hat{\boldsymbol{\theta}}_{i,a,t}-\boldsymbol{\mu}_a)
+\right].$$
+Then, we use profile log-likelihood to determine hyperparameter estimates
+$(\hat{\boldsymbol{\mu}}_a, \hat{\boldsymbol{\Sigma}}_a)
+=
+\arg\max_{\boldsymbol{\mu}_a,\,\boldsymbol{\Sigma}_a}
+\;\ell(\boldsymbol{\mu}_a, \boldsymbol{\Sigma}_a)$:
+\[
+\hat{\boldsymbol{\Sigma}}_a
+=
+\arg\max_{\boldsymbol{\Sigma}_a \succeq 0}
+\ell_p(\boldsymbol{\Sigma}_a), \quad \hat{\boldsymbol{\mu}}_a
+=
+\left(
+\sum_{i=1}^n
+(\hat{\boldsymbol{\Sigma}}_a+\boldsymbol{\Sigma}_{i,a,t})^{-1}
+\right)^{-1}
+\left(
+\sum_{i=1}^n
+(\hat{\boldsymbol{\Sigma}}_a+\boldsymbol{\Sigma}_{i,a,t})^{-1}
+\hat{\boldsymbol{\theta}}_{i,a,t}
+\right)
+\]
+\label{decision}
+%\sam{What software will you use to calculate $\hat{\boldsymbol{\Sigma}}_a$? } \nys{Since there is no closed-for solution, I use EM, warm-starting with hyperparameter estimates from previous time step $t-1$ to minimize iterations.} 
+Now, EB has estimated the posterior distribution for the true individual-level parameters given the observed data, which we denoted earlier as $\boldsymbol{\theta}_{i,a}\mid \hat{\boldsymbol{\theta}}_{i,a,t}$. EB will determine the posterior probability of one arm yielding the greater reward:
+$$\textrm{P}\!\left(
+\boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,1}
+>
+\boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,0}
+\right)
+=
+\Phi\!\left(
+\frac{
+\boldsymbol{x}_{i,t}^\top
+\left(
+\boldsymbol{\hat{\Sigma}}_1^{-1}
++
+\boldsymbol{\Sigma}_{i,1,t}^{-1}
+\right)^{-1}
+\left(
+\boldsymbol{\hat{\Sigma}}_1^{-1}\hat{\boldsymbol{\mu}}_1
++
+\boldsymbol{\Sigma}_{i,1,t}^{-1}\hat{\boldsymbol{\theta}}_{i,1,t}
+\right)
+-
+\boldsymbol{x}_{i,t}^\top
+\left(
+\boldsymbol{\hat{\Sigma}}_0^{-1}
++
+\boldsymbol{\Sigma}_{i,0,t}^{-1}
+\right)^{-1}
+\left(
+\boldsymbol{\hat{\Sigma}}_0^{-1}\hat{\boldsymbol{\mu}}_0
++
+\boldsymbol{\Sigma}_{i,0,t}^{-1}\hat{\boldsymbol{\theta}}_{i,0,t}
+\right)
+}{
+\sqrt{
+\boldsymbol{x}_{i,t}^\top
+\left(
+\boldsymbol{\hat{\Sigma}}_1^{-1}
++
+\boldsymbol{\Sigma}_{i,1,t}^{-1}
+\right)^{-1}
+\boldsymbol{x}_{i,t}
++
+\boldsymbol{x}_{i,t}^\top
+\left(
+\boldsymbol{\hat{\Sigma}}_0^{-1}
++
+\boldsymbol{\Sigma}_{i,0,t}^{-1}
+\right)^{-1}
+\boldsymbol{x}_{i,t}
+}
+}
+\right)$$
+and an action will be selected following the same procedure as in the vanilla MAB:
+$$a_{i,t}^* =
+\begin{cases}
+1, & \text{with probability }
+\textrm{P}\!\left(
+\boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,1}
+>
+\boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,0}
+\right) \\[0em]
+0, & \text{with probability }
+1-
+\textrm{P}\!\left(
+\boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,1}
+>
+\boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,0}
+\right)
+\end{cases}$$
+\textit{Note:} When implementing empirical Bayes in practice, in lieu of calculating this probability, a random draw would be performed from each of the two $\boldsymbol{\theta}_{i,a}$ posterior distributions, and the action yielding the greater $\boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,a}$ value will be selected. 
+
+\begin{codechunk}{Empirical Bayes}
+for (int t=0; t<T; ++t) {
+    // stores theta estimates
+    // INDIVIDUAL-LEVEL LEARNING:
+    // run the ridge regression individually where i=specific participant
+    for (int i=0; i<n; ++i) for (int a=0; a<2; ++a) {
+        ridge_estimate(state[i][a], lam, mu0_prior,
+                       theta_hat[i][a], Sigma_hat[i][a]);
+        has_data[i][a] = state[i][a].n_obs > 0;
+    }
+
+    // HYPERPARAMETER ESTIMATION:
+    // EM-style iterative update
+    for (int a=0; a<2; ++a) {
+        // counts number of participants 
+        int nn = 0;
+        for (int i=0; i<n; ++i) if (has_data[i][a]) nn++;
+        if (nn==0) continue;
+        // fetch prior estimates of population-level hyperparameters
+        Vec mu_cur    = mu_pop[a];
+        M2  Sigma_cur = Sigma_pop[a];
+        // EM ALGORITHM BEGINS HERE
+        // notably, we will warm start with prior hyperparameter estimate to reduce number of iterations 
+        for (int iter=0; iter<MAX_ITER; ++iter) {
+            // calculates posterior hyperparameters *just* from data in a given round
+            Vec mu_new    = {0.0, 0.0};
+            M2  Sigma_new = {0.0, 0.0, 0.0, 0.0};
+            // E-STEP
+            // performs updates for each individual-action (i,a) combination with data, aka computes theta_{i,a} | theta_hat_{i,a,t} 
+            for (int i=0; i<n; ++i) {
+                if (!has_data[i][a]) continue;
+                M2  Sp_inv    = inv2(Sigma_cur);
+                M2  Si_inv    = inv2(Sigma_hat[i][a]);
+                M2  post_cov  = inv2(add2(Sp_inv, Si_inv));
+                Vec rhs       = matvec2(Sp_inv, mu_cur);
+                Vec tmp       = matvec2(Si_inv, theta_hat[i][a]);
+                rhs[0]+=tmp[0]; rhs[1]+=tmp[1];
+                Vec post_mean = matvec2(post_cov, rhs);
+                mu_new[0] += post_mean[0];
+                mu_new[1] += post_mean[1];
+                Sigma_new = add2(Sigma_new, add2(post_cov, outer2(post_mean)));
+            }
+            // M-STEP
+            // posterior mean is new mu
+            mu_new[0] /= nn; mu_new[1] /= nn;
+            // new Sigma = E[theta*theta^T] - mu_new*mu_new^T by def of variance
+            Sigma_new = sub2(scale2(Sigma_new, 1.0/nn), outer2(mu_new));
+            Sigma_new = project_psd(Sigma_new, 1e-8);
+            // check for convergence 
+            double delta = std::abs(mu_new[0]-mu_cur[0])
+                         + std::abs(mu_new[1]-mu_cur[1])
+                         + std::abs(Sigma_new.a-Sigma_cur.a)
+                         + std::abs(Sigma_new.d-Sigma_cur.d);
+            mu_cur = mu_new; Sigma_cur = Sigma_new;
+            if (delta < TOL) break;
+        }
+        // save after convergence - used for warm start at next time point t
+        mu_pop[a] = mu_cur; Sigma_pop[a] = Sigma_cur;
+    }
+
+    // PER PARTICIPANT ACTION SELECTION: loops through each participant
+    M2 Sp_inv[2] = { inv2(Sigma_pop[0]), inv2(Sigma_pop[1]) };
+    for (int i=0; i<n; ++i) {
+        Vec x = {1.0, (double)env.context[i][t]};
+        int a_sel;
+        // if one of the two arms has never been tried, pick one randomly (forced explorer)
+        if (!has_data[i][0] || !has_data[i][1]) {
+            a_sel = ud(rng);
+        } else {
+            // COMPUTE POSTERIOR DISTRO: theta_{i,a} | theta_hat_{i,a,t}
+            double reward_mean[2], reward_var[2];
+            for (int a=0; a<2; ++a) {
+                M2  Si_inv    = inv2(Sigma_hat[i][a]);
+                M2  post_cov  = inv2(add2(Sp_inv[a], Si_inv));
+                Vec rhs       = matvec2(Sp_inv[a], mu_pop[a]);
+                Vec tmp       = matvec2(Si_inv, theta_hat[i][a]);
+                rhs[0]+=tmp[0]; rhs[1]+=tmp[1];
+                Vec post_mean = matvec2(post_cov, rhs);
+                // calculate expected reward using context for participant
+                reward_mean[a] = x[0]*post_mean[0]+x[1]*post_mean[1];
+                reward_var[a]  = quad2(x, post_cov);
+            }
+            // P(x_{i,t}*theta_{i,a=a_0} > x_{i,t}*theta_{i,a=a_1})
+            double diff = reward_mean[1]-reward_mean[0];
+            double sd   = std::sqrt(std::max(reward_var[0]+reward_var[1], 1e-20));
+            // sample and select greater expected reward
+            a_sel = (ur(rng) < normal_cdf(diff/sd)) ? 1 : 0;
+        }
+
+        // TRUE ENVIRONMENT (NOT part of action selection): generate rewards, calculate regret
+        double mean_r = expected_reward(env,i,t,a_sel);
+        double r      = mean_r + sigma_r*nd(rng);
+        update_state(state[i][a_sel], x, r);
+        total_regret += best_expected(env,i,t) - mean_r;
+    }
+}
+\end{codechunk}
+
+\subsubsectiontitle{Unpooled Thompson Sampling}
+Like EB, contextual unpooled Thompson sampling will also receive $(\hat{\boldsymbol{\theta}}_{i,a,t}, \boldsymbol{\Sigma}_{i,a,t})$ from the learning algorithm for each participant $i$ and arm $a$ at time $t$. In this case, the prior is the Ridge regression prior at time $0$: $$\boldsymbol{\theta}_{i,a} \sim \mathcal{N}(0, \tau_{0,a}^2 I), \quad \lambda = \frac{\sigma_a^2}{\tau_{0,a}^2}
+=10^{-6}.$$
+%\sam{actually the prior is:$$\boldsymbol{\theta}_{i,a} \sim \mathcal{N}(0, \tau_{0,a}^2 I), \quad \lambda = \frac{\sigma_a^2}{\tau_{0,a}^2} =10^{-6}.$$} \nys{Corrected!}
+Importantly, unpooled TS only uses the data for a given participant $i$ to determine the action for that participant; it does not consider the data observed from other participants. For each individual, Thompson sampling's  posterior distribution of their reward parameters is:
+$$\boldsymbol{\theta}_{i,a,t}
+\sim
+\mathcal{N}\!\left(
+\hat{\boldsymbol{\theta}}_{i,a,t},
+\boldsymbol{\Sigma}_{i,a,t}
+\right)$$
+
+A reward is generated though a random draw of both arms, and the arm with the higher draw \textit{given} the context of that participant $i$ is selected.
+$$R_{i,t}(a)
+=
+\boldsymbol{x}_{i,t}^{\top}\boldsymbol{\theta}_{i,a,t}, \quad a_{i,t}^{*}
+=
+\arg\max_{a\in\{0,1\}}
+R_{i,t}(a)$$
+
+\begin{codechunk}{Unpooled Thompson Sampling}
+// loop through all time points for each round
+for (int t=0; t<T; ++t) {
+    // UNPOOLED TS: loop through each *individual* so action selection is only on each individual's info (unpooled)
+    for (int i=0; i<n; ++i) {
+        // provided correct context feature vector
+        Vec x = {1.0, (double)env.context[i][t]};
+        int a_sel;
+        // if one of the two arms has never been tried, pick one randomly (forced explorer)
+        if (state[i][0].n_obs == 0 || state[i][1].n_obs == 0) {
+            a_sel = ud(rng);
+        // otherwise, do thompson sampling
+        } else {
+            Vec theta_hat[2]; M2 Sigma_hat[2];
+            double samp_reward[2];
+            for (int a=0; a<2; ++a) {
+                // compute posteriors for each arm separately
+                ridge_estimate(state[i][a], lam, mu0_prior,
+                               theta_hat[a], Sigma_hat[a]);
+                // do the random draw for each arm and compute the sampled reward
+                Vec th_draw = sample_mvn2(theta_hat[a], Sigma_hat[a], rng);
+                samp_reward[a] = x[0]*th_draw[0]+x[1]*th_draw[1];
+            }
+            // select arm with higher sampled reward
+            a_sel = (samp_reward[1] > samp_reward[0]) ? 1 : 0;
+        }
+        // reward
+        double mean_r = expected_reward(env,i,t,a_sel);
+        double r      = mean_r + sigma_r*nd(rng);
+        update_state(state[i][a_sel], x, r);
+        total_regret += best_expected(env,i,t) - mean_r;
+    }
+\end{codechunk}
+\subsubsectiontitle{Pooled Thompson Sampling}
+\label{pooled-learning}
+Note that while this section is focused on the pooled Thompson sampling \textit{action selection} strategy, we first must clarify the corresponding learning algorithm that makes this action selection strategy \enquote{pooled.} 
+
+%\sam{What model is the learning algorithm using?   } \nys{Added in first paragraph in below box!}
+
+\begin{notebox}[Pooled Learning Algorithm]
+The learning algorithm has no knowledge of the true underlying environment and instead assumes the following model for the observed rewards:
+$$R_{i,t}(a) = \boldsymbol{\theta}_{i}^\top \boldsymbol{x}_{i,t} + \varepsilon_{i,t,a}=\theta_{a,0}+\theta_{a,1}c_{i,t}+\varepsilon_{i,t}$$
+where $\boldsymbol{x}_{i,t} = (1, c_{i,t})^\top$, $\boldsymbol{\theta_{a}} = (\theta_{a,0}, \theta_{a,1})^\top$, and participant-level noise is distributed as $\varepsilon_{i,t} \sim \mathcal{N}(0,\sigma^2)$  where $\{\varepsilon_{i,t}\}_{i\in[n], t\in [T]}$ are i.i.d. \\
+
+Rather than the participant-level learning algorithm described in Section~\ref{learning-alg-unpooled}, a pooled ridge regression is performed on all participants' data. The prior is as follows:
+
+$$
+\boldsymbol{\theta}_{a} \sim \mathcal{N}(0, \tau_{0,a}^2 I),
+\quad
+\lambda = \frac{\sigma_a^2}{\tau_{0,a}^2}=10^{-6}
+$$
+
+The estimates are yielded with the ridge regression learning algorithm as follows, using pooled data from each arm:
+
+\[
+\hat{\boldsymbol{\theta}}_{a,t}
+=
+\left(
+\lambda I
++
+\sum_{i=1}^{n}\sum_{j=1}^{n_{i,a,t}}
+\boldsymbol{x}_{i,j}\boldsymbol{x}_{i,j}^{\top}
+\right)^{-1}
+\left(
+\sum_{i=1}^{n}\sum_{j=1}^{n_{i,a,t}}
+\boldsymbol{x}_{i,j}r_{i,a,j}
+\right)
+\]
+ where $\boldsymbol{x}_{i,j} = (1, c_{i,j})^\top$ and $n_{i,a,t}$ is the number of times the algorithm has selected action $a$ for participant $i$ up to time $t$. Then, the learning algorithm's residuals and uncertainty is pooled \textit{across} individuals:
+\[
+\boldsymbol{\Sigma}_{a,t}
+=
+\hat{\sigma}_{a,t}^2
+\left(
+\lambda I
++
+\sum_{i=1}^{n}\sum_{j=1}^{n_{i,a,t}}
+\boldsymbol{x}_{i,j}\boldsymbol{x}_{i,j}^{\top}
+\right)^{-1},
+\quad
+\hat{\sigma}_{a,t}^2
+=
+\frac{
+\sum_{i=1}^{n}\sum_{j=1}^{n_{i,a,t}}
+\left(
+r_{i,a,j}
+-
+\boldsymbol{x}_{i,j}^{\top}\hat{\boldsymbol{\theta}}_{a,t}
+\right)^2
+}{
+\sum_{i=1}^{n} n_{i,a,t} - 2
+}
+\]
+
+To achieve this, we still use the \texttt{ridge\_estimate()} function written in Algorithm~\protect\ref{ridge-alg}, but we call it on \texttt{state[a]} instead of \texttt{state[i][a]} as shown in Algorithm~\ref{ridge-alg-pooled} below.
+
+\end{notebox}
+
+This action selection strategy believes that the true $\boldsymbol{\theta}_{a}$ parameters are constant across the population with posterior distribution:  
+$$
+\boldsymbol{\theta}_{a}
+\sim
+\mathcal{N}\!\left(
+\hat{\boldsymbol{\theta}}_{a,t},
+\boldsymbol{\Sigma}_{a,t}
+\right)
+$$
+
+Again, a reward is generated though a random draw of $\boldsymbol{\theta}_{a}$ for both arms, from their posterior distributions.  The arm with the higher draw \textit{given} the context of that participant $i$ is selected. Draws will be performed independently for each of the $n$ participants to select an action for each individual, even though these draws will all be from the same pooled distribution. 
+$$
+R_{i,t}(a)
+=
+\boldsymbol{x}_{i,t}^{\top}\boldsymbol{\theta}_{a},
+\quad
+a^*_{i,t}
+=
+\arg\max_{a \in \{0,1\}}
+R_{i,t}(a)
+$$ \label{ridge-alg-pooled}
+\begin{codechunk}{Pooled Thompson Sampling}
+for (int t=0; t<T; ++t) {
+    // shared posterior
+    // we do NOT loop through individuals here unlike for unpooled TS 
+    Vec theta_hat[2]; M2 Sigma_hat[2];
+    bool ready[2];
+    for (int a=0; a<2; ++a) {
+        // again, we are running ridge regression on data from ALL participants
+        ridge_estimate(state[a], lam, mu0_prior, theta_hat[a], Sigma_hat[a]);
+        ready[a] = state[a].n_obs > 0;
+    }
+    // *now* we loop through individuals for action selection 
+    for (int i=0; i<n; ++i) {
+        Vec x = {1.0, (double)env.context[i][t]};
+        int a_sel;
+        // if one of the two arms has never been tried, pick one randomly (forced explorer)
+        if (!ready[0] || !ready[1]) {
+            a_sel = ud(rng);
+        } else {
+            double samp_reward[2];
+            for (int a=0; a<2; ++a) {
+                // sample and calculate reward for each arm
+                Vec th_draw = sample_mvn2(theta_hat[a], Sigma_hat[a], rng);
+                samp_reward[a] = x[0]*th_draw[0]+x[1]*th_draw[1];
+            }
+            // select the action with the higher expected reward given the context 
+            a_sel = (samp_reward[1] > samp_reward[0]) ? 1 : 0;
+        }
+        // get true expected reward
+        double mean_r = expected_reward(env,i,t,a_sel);
+        // random draw  
+        double r      = mean_r + sigma_r*nd(rng);
+        // save new data point 
+        update_state(state[a_sel], x, r);
+        // calculate regret = best possible reward - reward of selected action (true means)
+        total_regret += best_expected(env,i,t) - mean_r;
+    }
+}
+\end{codechunk}
+
+\subsectiontitle{Simulations}
+\label{time-var-sim}
+
+In the below simulations, we explore the performance of the three action selection strategies for varying context prevalence (i.e., $P(c_{i,t}=1)$, or how rare one context is compared to the other). Simulations include $9$ evenly spaced values of $p$ between $0.1$ and $0.5$. $P(c_{i,t}=1)=0.1$ implies that there is a paucity of data for one context (e.g., participants are rarely sick; they are only sick $10\%$ of the time), whereas $P(c_{i,t}=1)=0.5$ implies that we have similar information about both contexts. Sweeping through these values of $P(c_{i,t}=1)$, we test several meaningful conjectures:
+
+\textit{First}, we conjecture that when the optimal arm differ by context, and sample size ($n=50$) and time points ($T=100$) are sufficient: At high heterogeneity-to-noise ratios (i.e. $\tau^2_{1,11}+\tau^2_{0,11}$ are large relative to $\sigma^2$), unpooled TS performs the best; at low heterogeneity-to-noise ratios, pooled TS performs best; at middling ratios, EB performs best. Our simulations indeed confirmed that this is the case.\autocite{sun_kreiman_2026_slides} \nys{You asked not to see these specific graphs again, since they're what we expected; just wanted to note somewhere in the write-up that we did check this.}
+
+Realistically, we expect to deal with environments where the heterogeneity-to-noise ratio is relatively low (i.e., \enquote{difficult} environments where participant responses are not clearly different). After establishing the first conjecture to be true, the rest of our simulations will be run in moderate heterogeneity-to-noise environments, where we will test the effect of data paucity on algorithm performance through altering $T$ and $n$:
+
+\nys{Nora's graph on slide 6.} \textit{Second}, we test the effect of varying the number of time points $T$ on algorithm performance. The primary difference between EB and pooling algorithms, the top two contenders in moderate-to-low heterogeneity-to-noise settings, is that pooling algorithm pools during learning, while EB only pools during action selection. Thus, we expect EB to perform worse than pooled at low values of $T$. However, we expect this disadvantage to be overcome once the participants are heterogeneous enough to warrant not pooling during learning, so EB should improve. \nys{We also tested changing $n$, but the results were expected, so you asked us to exclude that graph.}
+
+\btk{Betina's graph on Slide 7.} \textit{Third,} we test a setting where the context is present but does not change which arm is optimal. The context shifts rewards for both arms equally, so arm $1$ remains universally better, regardless of $c_i$. This setting is motivated by understanding what happens when algorithms that model context are deployed in an environment where context provides no useful information about arm selection. This is meaningfully different from a similarly low-heterogeneity setting where arms are opposite by context. There, context is genuinely informative and algorithms that leverage it are rewarded for doing so. Here, modeling context is unnecessary and potentially costly, since it introduces estimation without any benefit to arm selection. In particular, we expect EB's performance relative to pooled TS to be largely unaffected by sweeping $p$. This is because the optimal action does not depend on context, so varying the proportion of $c_i=1$ for participants provides no new signal for arm selection. With small between-person heterogeneity ($\tau / \sigma \approx 0.63$), we expect pooled TS to perform best, unpooled TS worst, and EB in between. This is the same order as other low-heterogeneity settings, but here the cause is entirely from noise rather than failure to exploit context. 
+
+% the optimal arm is the same for all participants regardless of context. The context shifts both arms equally so the arm ordering never flips. With small between-person heterogeneity ($\tau / \sigma \approx 0.63$), we expect pooled TS to perform best, as participants are sufficiently similar that sharing information during learning is beneficial and the shared optimal arm can be identified quickly. We expect unpooled TS to perform worst, as each participant must independently discover the same optimal arm without leveraging the shared population structure. EB should fall between the two: while it attempts to account for individual heterogeneity, the true heterogeneity is small enough that its estimation overhead outweighs the benefit, and it cannot improve upon pooled TS. 
+
+All code for the simulations in this section can be found here. \autocite{sun_kreiman_2026_contextualcode} \sam{link appears dead!} \btk{the repository was private so we changed it to public and it works now!}
+
+\subsubsectiontitle{Varying Time Horizon}
+
+\textit{True environment}. \sam{Yes, let's repeat for more realistic treatment effect/interaction effects!--See comment above for more realistic values.} \nys{Note: This section has an unreasonably large population mean treatment effect for $c_i=1$ of $\approx 19.5$; we can rerun with a smaller one if you'd like. Also, because the second entry in the $\boldsymbol{\mu}$ are so large, the population prior $(0 ,0)$ is misspecified for $c_i=1$, so EB is unfairly sabotaged as $P(c_i=1)$ increases.} In the below simulations, the optimal arm differs significantly by context. Recall that $\boldsymbol{\mu}_0=(\mu_{0,0},\mu_{0,1})^\top$ is the population-level means for the coefficient vector $\boldsymbol{\theta}_{i,a=0}$. $\boldsymbol{\mu}_1=(\mu_{1,0},\mu_{1,1})^\top$ is the population-level means for the coefficient vector $\boldsymbol{\theta}_{i,a=1}$. \sam{if prior statement is true then the values for $\mathbb{E}[R_{i,t}(a)]$ below are incorrect!} \nys{Resolved during meeting with Betina?} For the simulations below, in the true environment, $\boldsymbol{\mu}_0 = (0.00,\ 10.00)^\top$ and 
+$\boldsymbol{\mu}_1 = (0.50,\ -10.00)^\top$. This implies that the population-level means for the reward distribution for all combinations of $c_i$ and $a$ are as follows:
+\[
+\mathbb{E}[R_{i,t}(a)] = \begin{cases}
+\mu_{0,0} = 0 & \text{arm } a=0,\ c_i=0 \\
+\mu_{1,0} = 0.50 & \text{arm } a=1,\ c_i=0 \\
+\mu_{0,0} + \mu_{0,1} = 0 + 10 = 10 & \text{arm } a=0,\ c_i=1 \\
+\mu_{1,0} + \mu_{1,1} = 0.50 + (-10) = -9.50 & \text{arm } a=1,\ c_i=1
+\end{cases}
+\]
+\sam{So the model is:
+$$\mathbb{E}[R_{i,t}(a)|c_i] =\mu_{0,0}(1-a) + \mu_{1,0}a + \left(\mu_{0,1}(1-a)  + \mu_{1,1}(a)\right)(c_i)
+=\mu_{a,0} +\mu_{a,1}c_i.$$
+So average treatment effect is $\mu_{1,0}-\mu_{0,0}$ (when $c_i=0$) and interaction effect is $\mu_{1,1}-\mu_{0,1}$.}
+
+Additionally, there is moderate population-level heterogeneity with $$\boldsymbol{\Sigma}_0 = \boldsymbol{\Sigma}_1 = \begin{pmatrix} 0.25 & 0.00 \\ 0.00 & 0.25 \end{pmatrix}$$ and a moderate level of noise with $\sigma = 0.50$. There is no covariance between the main and interaction effects: $\tau_{a,01}=\tau_{a,10}= \text{Cov}(\theta_{i,a,0}, \theta_{i,a,1})=0$.
+
+\textit{Priors}. We begin with the priors $\boldsymbol{\mu}_{\mathrm{prior}} = (0.00, 0.00)^\top$ for both $\boldsymbol{\mu}_0$ and $\boldsymbol{\mu}_1$,\ $\lambda = \frac{\sigma_a^2}{\tau_0^2}=10^{-6}$, and for empirical Bayes, $$\boldsymbol{\Sigma}_{\mathrm{prior}} = I=\begin{pmatrix} 1 & 0 \\ 0 & 1 \end{pmatrix}.$$
+
+\textit{Results}. In Figure~\ref{fig:slide5}, we indeed observe that pooling outperforms EB at low $T$ and $\tau/\sigma=0.25/0.5$. Additionally, we note that EB's regret increases with context proportion $P(c_{i,t})$. This is an effect of the population-level prior we selected, $\boldsymbol{\mu}_{\mathrm{prior}} = (0.00, 0.00)^\top$, which is much more accurate for $P(c_{i,t})=0$ because the true $\boldsymbol{\mu}_0 = (0.00, 10.00)^\top$ and $\boldsymbol{\mu}_1 = (0.50, -10.00)^\top$ have intercepts close to 0.
+
+\begin{figure}[H]
+% [t!]
+    \centering
+    \textsf{Moderate Heterogeneity, Large Treatment Effect: $T=200$ vs $T=50$ }\par\vspace{1em}
+    \begin{subfigure}{0.44\linewidth}
+        \centering
+        \includegraphics[width=\linewidth, trim=.5cm 3.5cm .4cm 2cm, clip]{Nora/contextual bandit/final-graphs/slide5_left.png}
+    \end{subfigure} 
+    \hspace{0.005\linewidth}
+    \begin{subfigure}{0.44\linewidth}
+        \centering
+        \includegraphics[width=\linewidth, trim=.5cm 3.5cm .4cm 2cm, clip]{Nora/contextual bandit/final-graphs/slide5_right.png}
+    \end{subfigure}
+    \caption{The left and right panels differ by number of time points, with $T=200$ (left) and $T=50$ (right) respectively ($n=50$ participants, $200$ runs).
+        }
+    \label{fig:slide5}
+\end{figure}
+
+To confirm that EB might outperform pooling even at low $T$ when heterogeneity-to-noise is higher at $\tau/\sigma=0.5/0.5$ (and therefore pooled learning is less accurate), we run a second set of simulations where $$\boldsymbol{\Sigma}_0 = \boldsymbol{\Sigma}_1 = \begin{pmatrix} 0.50 & 0.00 \\ 0.00 & 0.50 \end{pmatrix}.$$
+
+In Figure~\ref{fig:slide5b}, all else is the same as Figure~\ref{fig:slide5}. Indeed, we observe that EB outperforms the pooled algorithm at $T=100$ and $T=50$ for most $P(c_{i,t}=1)$. Recall that EB is put at a disadvantage at high $P(c_{i,t}=1)$ because its prior is misspecified. \nys{If it's helpful, I could instead change the $x$-axis to be different heterogeneity-to-noise ratios rather than $P(c_{i,t}=1)$ to better test the hypothesis of when EB overtakes pooling even at low $T$?}
+
+\begin{figure}[h!]
+    \centering
+    \textsf{High Heterogeneity, Large Treatment Effect: $T=100$ vs $T=50$}\par\vspace{1em}
+    \begin{subfigure}{0.44\linewidth}
+        \centering
+        \includegraphics[width=\linewidth, trim=.5cm 3.5cm .4cm 2cm, clip]{Nora/contextual bandit/final-graphs/slide5_cont2.png}
+    \end{subfigure} 
+    \hspace{0.005\linewidth}
+    \begin{subfigure}{0.44\linewidth}
+        \centering
+        \includegraphics[width=\linewidth, trim=.5cm 3.5cm .4cm 2cm, clip]{Nora/contextual bandit/final-graphs/slide5_cont.png}
+    \end{subfigure}
+    \caption{The left and right panels differ by number of time points, with $T=100$ (left) and $T=50$ (right) respectively ($n=50$ participants, $200$ runs).}
+    \label{fig:slide5b}
+\end{figure}
+
+\subsubsectiontitle{Context-Independent Arm Ordering} 
+
+In Figure~\ref{fig:slide6}, the true environment is defined as: $\boldsymbol{\mu}_0 = (0.00,\ 0.50)^\top$ and 
+$\boldsymbol{\mu}_1 = (1.00,\ 0.50)^\top$. This implies that the population-level means for the reward distribution for all combinations of $c_i$ and $a$ are as follows:
+\[
+\mathbb{E}[R_{i,t}(a)] = \begin{cases}
+\mu_{0,0} = 0 & \text{arm } a=0,\ c_i=0 \\
+\mu_{1,0} = 1.00 & \text{arm } a=1,\ c_i=0 \\
+\mu_{0,0} + \mu_{0,1} = 0 + 0.50 = 0.50 & \text{arm } a=0,\ c_i=1 \\
+\mu_{1,0} + \mu_{1,1} = 1.00 + 0.50 = 1.50 & \text{arm } a=1,\ c_i=1
+\end{cases}
+\]
+
+Additionally, there is small population-level heterogeneity with $$\boldsymbol{\Sigma}_0 = \boldsymbol{\Sigma}_1 = \begin{pmatrix} 0.10 & 0.00 \\ 0.00 & 0.10 \end{pmatrix}$$ and a moderate level of noise with $\sigma = 0.50$. There is no covariance between the main and interaction effects: $\tau_{a,01}=\tau_{a,10}= \text{Cov}(\theta_{i,a,0}, \theta_{i,a,1})=0$.
+
+\textit{Priors}. We begin with the priors $\boldsymbol{\mu}_{\mathrm{prior}} = (0.00, 0.00)^\top$ for both $\boldsymbol{\mu}_0$ and $\boldsymbol{\mu}_1$,\ $\lambda = \frac{\sigma_a^2}{\tau_0^2}=10^{-6}$, and for empirical Bayes, $$\boldsymbol{\Sigma}_{\mathrm{prior}} = I=\begin{pmatrix} 1 & 0 \\ 0 & 1 \end{pmatrix}.$$
+
+\textit{Results}. In Figure~\ref{fig:slide6}, the between-person heterogeneity is small relative to the reward noise: the diagonal of $\Sigma$ is $0.10$ giving $\tau = \sqrt{0.10} \approx 0.32$ and a heterogeneity to noise ratio of $\tau / \sigma = 0.32 \ 0.50 \approx 0.63$. Since participants are more similar to each other than the noise level, sharing information across individuals is the best strategy. This is why pooled TS performs best. 
+
+EB is not the best performing algorithm here for the following two reasons. First, EB must estimate the population hyperparameters $\hat{\tau}^2$ and $\hat{\mu}_a$ at every time step from the individual-level posterior means and variances using the method-of-moments estimator. When true heterogeneity is small, these estimates are noisy. The sample variance of the posterior means is close to zero and fluctuates around the mean posterior variance making $\hat{\tau}^2$ unstable. This noise translates into erratic shrinkage weights $\lambda_{i,a,t}$ and delays in identifying arm $1$ as universally better. 
+
+Second, even when the EB estimator behaves correctly and drives $\lambda$ to $0$ (full shrinkage to the population mean), it only recovers Pooled TS's behavior, but it does not improve it. In this environment there is no individual-level structure worth exploiting. Since the context coefficient is identical for both arms ($\mu_{a,0} = \mu_{a,1} = 0.5$), context shifts both arms by the same amount and never changes which arm is optimal. EB's additional complexity  therefore provides no strategic benefit while incurring estimation overhead that Pooled TS avoids.
+
+\begin{figure}[H]
+    \centering
+    \textsf{Shared Optimal Arm: $T=100$}\par\vspace{1em}
+    
+    \begin{subfigure}{0.44\linewidth}
+        \centering
+        \includegraphics[width=\linewidth, trim=.5cm 3.5cm .4cm 1cm, clip]{Nora/contextual bandit/final-graphs/env_1_axes.png}
+    \end{subfigure}
+    \caption{Optimal arm never flips. }
+    \label{fig:slide6}
+\end{figure}
+
+
+\newpage
+
+\sectiontitle{Participant-Specific and Time-Invariant Context}
+
+In this second environment, we suppose that context $c_i$ is a participant-specific demographic variable that does not vary with time point $t$, such as graduate student vs professor status when $T$ is sufficiently low.
+
+\subsectiontitle{True Environment}
+
+ The reward is influenced by a Bernoulli context variable, which varies by $i$ (participant): $c_{i} \in \{0,1\}$ where $c_{i} \sim \text{Bern}(0.2)$. The reward is generated as
+$$R_{i,t}(a) = \boldsymbol{\theta}_{i,a}^\top \boldsymbol{x}_{i} + \varepsilon_{i,t,a}=\theta_{i,a,0}+\theta_{i,a,1}c_{i}+\varepsilon_{i,t,a}$$
+where $\boldsymbol{x}_{i} = (1, c_{i})^\top$, $\boldsymbol{\theta_{i,a}} = (\theta_{i,a,0}, \theta_{i,a,1})^\top$, and participant-level noise is distributed as $\varepsilon_{i,t,a} \sim \mathcal{N}(0,\sigma_a^2)$. Note that $\theta_{i,a,0}$ corresponds to the mean of a participant's reward distribution at times $t$ when $c_{i}=0$, and $\theta_{i,a,0}+\theta_{i,a,1}$ corresponds to the mean at times $t$ when $c_{i}=1$. 
+
+\nys{I have clarified that we are assuming the two sets of $\boldsymbol{\theta}_{i,a}$ are independent.}
+
+Again, recall that $\boldsymbol{\theta}_{i,a}$ is a vector of two coefficients, and there are two $\boldsymbol{\theta}_{i,a}$—for $a=1$ and $a=0$ respectively. Note that we are assuming $\boldsymbol{\theta}_{i,a}$ are \textit{independent} across $a$.
+
+Furthermore, each participant's parameters are drawn from a population-level hyperdistribution. $$\boldsymbol{\theta}_{i,a} \sim \mathcal{N}(\boldsymbol{\mu}_a, \boldsymbol{\Sigma}_a)\text{, where }\boldsymbol{\mu}_a =
+\begin{pmatrix}
+\mu_{a,0} \\
+\mu_{a,1}
+\end{pmatrix} \text{ and } \boldsymbol{\Sigma}_a
+=
+\begin{pmatrix}
+\tau_{a,00}^2 & \tau_{a,01} \\
+\tau_{a,10} & \tau_{a,11}^2
+\end{pmatrix}$$
+
+\subsectiontitle{Learning Algorithm}
+
+\textit{The learning algorithm does not have knowledge of the above environment.} In fact, the context effects cannot be learned at this step as learning is individualized—recall that only one of the two contexts is observed for each participant, since $c_i$ is a time-invariant property, such as a demographic variable. 
+
+As a result, the learning algorithm will assume the same model as it does in the vanilla MAB setting and output scalar estimates:
+$$
+R_{i,t}(a)=\theta_{i,a}^L+\varepsilon_{i,t,a}^L,
+\quad
+\varepsilon_{i,t,a}^L\sim \mathcal N(0,\sigma_{i,a}^{2,L})$$
+
+Again, interpreting the ridge regression through a Bayesian lens, the learning algorithm will uses the prior:
+$$\theta_{i,a}^{L} \sim \mathcal{N}(0,\tau_{0,L}^{2}), \quad \lambda_L = \frac{\sigma_{i,a}^{2,L}}{\tau_{0,L}^{2}}$$
+
+The learning algorithm will again output a single estimate per participant-arm, which we will call $\hat{\theta}_{i,a}^{L}$, which we will call $$\hat{\theta}_{i,a,t}^{L}
+=
+\left(
+\lambda_L + n_{i,a,t}
+\right)^{-1}
+\sum_{j=1}^{n_{i,a,t}} r_{i,a,j}$$
+
+Additionally, it will output a measure of uncertainty corresponding to this estimate, again approximating the true noise with the residual variance.
+\nys{Fixed the measure of uncertainty to be $\Sigma$ instead of $\tau$.}
+
+$$\Sigma_{i,a,t}^{L}
+=
+\hat{\sigma}_{i,a}^{2,L}
+\left(
+\lambda_L + n_{i,a,t}
+\right)^{-1}, \quad \hat{\sigma}_{i,a,t}^{2,L}
+=
+\frac{
+\sum_{j=1}^{n_{i,a,t}}
+\left(
+r_{i,a,j} - \hat{\theta}_{i,a,t}^{L}
+\right)^2
+}{
+n_{i,a,t}-1
+}$$
+
+The action selection strategy therefore still receives two values (estimate and uncertainty) per participant per arm at each time point.
+
+\label{scalar_learn}
+\begin{codechunk} {Scalar Learning Algorithm}
+// Since c_i is fixed, each participant observes only one context value.
+// The learning algorithm therefore fits a scalar model per (participant, arm):
+//   R_{i,t}(a) = theta^L_{i,a} + noise,   theta^L_{i,a} = x_i^T theta_{i,a}
+// and outputs scalar estimate theta_hat^L and uncertainty Sigma^L.
+
+struct ScalarState {
+    double sum_r;   // sum of rewards observed for this (participant, arm)
+    double sum_r2;  // sum of squared rewards (for residual variance)
+    int    n_obs;
+};
+
+inline void init_scalar(ScalarState& s){ s.sum_r=0; s.sum_r2=0; s.n_obs=0; }
+inline void update_scalar(ScalarState& s, double r){
+    s.sum_r+=r; s.sum_r2+=r*r; s.n_obs++;
+}
+
+// theta_hat^L = (lam + n)^{-1} * sum_r
+// Sigma^L     = sigma2_hat * (lam + n)^{-1},   sigma2_hat via (n-1) denominator
+inline void scalar_estimate(const ScalarState& s, double lam,
+                             double& th, double& sig) {
+    double denom = lam + s.n_obs;
+    th = (s.n_obs > 0) ? s.sum_r / denom : 0.0;
+    double sigma2 = 1.0;
+    if (s.n_obs > 1) {
+        double rss = s.sum_r2 - 2.0*th*s.sum_r + (double)s.n_obs*th*th;
+        sigma2 = std::max(rss / (s.n_obs - 1), 1e-8);
+    }
+    sig = sigma2 / denom;
+}
+\end{codechunk}
+
+% \begin{figure}[t]
+%     \centering
+%     \includegraphics[width=0.8\linewidth, trim=0 0 0 0, clip]{final_regret_vs_distance_ratio.png}
+%     \caption{Priors were set as $\mu_0 = [0,0], \tau_0 = [1,1]$ with 500 per $\sigma$ value.}
+%     \label{fig:ratio}
+% \end{figure}
+
+\subsectiontitle{Action Selection Strategy}
+\subsubsectiontitle{Empirical Bayes}
+\label{action2}
+
+%\nys{Explicitly designated as distribution conditional on hyperparameters vs marginal distribution.} 
+
+At every time point, the EB action selection strategy receives two sets of $(\hat{\theta}_{i,a,t}^{L}, \Sigma_{i,a,t}^{L})$ for each individual (one per action), which it treats as its data. 
+
+\textit{EB does not have knowledge of the true underlying environment.} EB believes that the estimates output by the learning algorithm, referred to as $\hat{\theta}_{i,a,t}^{L}$, is an estimate of \textit{some value} $\theta_{i,a}^{L}=\boldsymbol{\theta}_{i,a}^{\top}x_i$. \nys{With all the write-ups, EB uses the same Greek symbols as the true underlying environment, so I wanted to clarify that below, EB does not actually know/is not deriving the distributions of the $\boldsymbol{\theta}_{i,a}$ in the true environment and instead assumes its own model about the data it receives from the learning algorithm.} 
+
+Furthermore, EB believes that these estimates are distributed around the true mean as follows:
+$$\hat{\theta}_{i,a,t}^{L}\mid\boldsymbol{\theta}_{i,a}
+\sim
+\mathcal{N}\!\left(
+\boldsymbol{x}_i^\top\boldsymbol{\theta}_{i,a},
+\Sigma_{i,a,t}^{L}
+\right), \quad \boldsymbol{\theta}_{i,a}\sim\mathcal{N}(\boldsymbol{\mu}_a,\boldsymbol{\Sigma}_a)$$
+\sam{Setting up for the future, we could say that EB uses Bayesian linear regression as it's model for the data, $\hat{\theta}_{i,a,t}^{L}$:
+$$\hat{\theta}_{i,a,t}^{L}=\boldsymbol{x}_i^\top\boldsymbol{\theta}_{i,a} + \epsilon_{i,a,t}$$
+where the scalar,
+$\epsilon_{i,a,t}\sim\mathcal{N}(0,\boldsymbol{\Sigma}_{i,a,t}^L)$.} \nys{Got it!}
+
+Under this model, by Normal-Normal Conjugacy derivation parallel to Section~\ref{action}, the posterior distribution of the true means is:
+$$\boldsymbol{\theta}_{i,a}
+\mid
+\hat{\theta}^{L}_{i,a,t}, \boldsymbol{\mu}_a,\boldsymbol{\Sigma}_a
+\sim
+\mathcal{N}
+\left(
+\left(
+\boldsymbol{\Sigma}_a^{-1}
++
+\frac{1}{\Sigma^{L}_{i,a,t}}
+\boldsymbol{x}_i\boldsymbol{x}_i^\top
+\right)^{-1}
+\left(
+\boldsymbol{\Sigma}_a^{-1}\boldsymbol{\mu}_a
++
+\frac{1}{\Sigma^{L}_{i,a,t}}
+\boldsymbol{x}_i \hat{\theta}^{L}_{i,a,t}
+\right),
+\left(
+\boldsymbol{\Sigma}_a^{-1}
++
+\frac{1}{\Sigma^{L}_{i,a,t}}
+\boldsymbol{x}_i\boldsymbol{x}_i^\top
+\right)^{-1}
+\right)$$
+\nys{I have added the derivation of the marginal posterior distribution of the estimates.}
+\sam{Actually we can use the same idea you used before:
+\begin{eqnarray*}\hat{\theta}_{i,a,t}^{L}&=&\boldsymbol{x}_i^\top\boldsymbol{\mu}_{a} + \boldsymbol{x}_i^\top\left(\boldsymbol{\theta}_{i,a}-\boldsymbol{\mu}_{a}\right) + \left(\hat{\theta}_{i,a,t}^L-\boldsymbol{x}_i^\top\boldsymbol{\theta}_{i,a}\right)
+\end{eqnarray*}
+where $\left(\hat{\theta}_{i,a,t}^L-\boldsymbol{x}_i^\top\boldsymbol{\theta}_{i,a}\right)$ and $\boldsymbol{x}_i^\top\left(\boldsymbol{\theta}_{i,a}-\boldsymbol{\mu}_{a}\right)$ are independent Gaussians with means, 0.  What are their variances?} \nys{The variance of the first difference is $\boldsymbol{x}_i^\top\boldsymbol{\Sigma}_a\boldsymbol{x}_i$ (population-level variation, i.e. differences between the person-level reward mean and population-level reward mean) and the variance of the second term is  $\Sigma_{i,a,t}^{L}$ (error of the estimate, i.e. difference between scalar estimate of mean reward and scalar sum of two parameters aka true mean reward).}
+
+As an alternative to using the same trick as Section~\ref{action}, we can also rigorously derive the marginal posterior distribution by marginalizing out $\boldsymbol{\theta}_{i,a}$ and completing the square:
+\begin{align*}
+p\left(\hat{\theta}^L_{i,a,t}\mid \boldsymbol{\mu}_a,\boldsymbol{\Sigma}_a\right)
+&=
+\int
+p\left(\hat{\theta}^L_{i,a,t}\mid \boldsymbol{\theta}_{i,a}\right)
+p\left(\boldsymbol{\theta}_{i,a}\mid \boldsymbol{\mu}_a,\boldsymbol{\Sigma}_a\right)
+\, d\boldsymbol{\theta}_{i,a} \\
+&\propto
+\int
+\exp\left(
+-\frac{
+\left(
+\hat{\theta}^L_{i,a,t}
+-
+\boldsymbol{x}_i^\top \boldsymbol{\theta}_{i,a}
+\right)^2
+}{
+2\Sigma^L_{i,a,t}
+}
+\right)
+\exp\left(
+-\frac{1}{2}
+(\boldsymbol{\theta}_{i,a}-\boldsymbol{\mu}_a)^\top
+\boldsymbol{\Sigma}_a^{-1}
+(\boldsymbol{\theta}_{i,a}-\boldsymbol{\mu}_a)
+\right)
+\, d\boldsymbol{\theta}_{i,a} \\
+&\propto
+\int
+\exp\left(
+-\frac{
+\left(
+\hat{\theta}^L_{i,a,t}
+-
+\boldsymbol{x}_i^\top \boldsymbol{\theta}_{i,a}
+\right)^2
+}{
+2\Sigma^L_{i,a,t}
+}
+-\frac{1}{2}
+(\boldsymbol{\theta}_{i,a}-\boldsymbol{\mu}_a)^\top
+\boldsymbol{\Sigma}_a^{-1}
+(\boldsymbol{\theta}_{i,a}-\boldsymbol{\mu}_a)
+\right)
+\, d\boldsymbol{\theta}_{i,a}
+\end{align*}
+
+Every part of the expression that contains $\boldsymbol{\theta}_{i,a}$ will be integrated out to a constant. By completing the square above, we yield the following term that does not depend on $\boldsymbol{\theta}_{i,a}$, which is the exponent term of the Normal PDF corresponding to the marginal distribution of the estimates:
+$$
+p\left(\hat{\theta}^L_{i,a,t}\mid \boldsymbol{\mu}_a,\boldsymbol{\Sigma}_a\right) \propto \exp\left(
+-\frac{
+\left(
+\hat{\theta}^L_{i,a,t}
+-
+\boldsymbol{x}_i^\top \boldsymbol{\mu}_a
+\right)^2
+}{
+2\left(
+\boldsymbol{x}_i^\top \boldsymbol{\Sigma}_a \boldsymbol{x}_i
++
+\Sigma^L_{i,a,t}
+\right)
+}
+\right)
+$$
+Thus, the observed estimates are distributed as:
+$$\hat{\theta}^{L}_{i,a,t}
+\mid
+\boldsymbol{\mu}_a,\boldsymbol{\Sigma}_a
+\sim
+\mathcal{N}\!\left(
+\boldsymbol{x}_i^\top\boldsymbol{\mu}_a,\,
+\boldsymbol{x}_i^\top\boldsymbol{\Sigma}_a\boldsymbol{x}_i+\Sigma_{i,a,t}^{L}
+\right)$$ 
+Note that since the estimates are scalars, we observe two cases of the variances, which hinders as from recovering the full covariance matrix for the hyperdistribution later on.
+$$
+\text{Var}(\hat{\theta}^L_{i,a,t} \mid \boldsymbol{\mu}_a, \boldsymbol{\Sigma}_a) = \boldsymbol{x}_i^\top\boldsymbol{\Sigma}_a\boldsymbol{x}_i+\Sigma_{i,a,t}^{L}=
+\begin{cases}
+\tau_{a,00}^2 + \Sigma^L_{i,a,t} & c_i = 0, \; \boldsymbol{x}_i = (1,0)^\top \\
+\tau_{a,00}^2 + 2\tau_{a,01} + \tau_{a,11}^2 + \Sigma^L_{i,a,t} & c_i = 1, \; \boldsymbol{x}_i = (1,1)^\top
+\end{cases}$$
+
+After getting to this posterior, EB realizes that it does not know the true hyperparameters like a real Bayesian. Thus, it will empirically determine the hyperdistribution through maximum \textit{a posteriori} (MAP) estimation using profile likelihood. 
+
+Based on the marginal distribution of the estimates in the display above, the likelihood of a given set of hyperparameters is:
+$$\ell(\boldsymbol{\mu}_a,\boldsymbol{\Sigma}_a)
+=
+-\frac12
+\sum_{i=1}^n
+\left[
+\log\!\left(
+2\pi\left(
+\boldsymbol{x}_i^\top\boldsymbol{\Sigma}_a\boldsymbol{x}_i+\Sigma_{i,a,t}^{L}
+\right)
+\right)
++
+\frac{
+\left(
+\hat{\theta}^{L}_{i,a,t}-\boldsymbol{x}_i^\top\boldsymbol{\mu}_a
+\right)^2
+}{
+\boldsymbol{x}_i^\top\boldsymbol{\Sigma}_a\boldsymbol{x}_i+\Sigma_{i,a,t}^{L}
+}
+\right]$$
+
+Then, the estimates $(\hat{\boldsymbol{\mu}}_a, \hat{\boldsymbol{\Sigma}}_a)
+=
+\arg\max_{\boldsymbol{\mu}_a,\,\boldsymbol{\Sigma}_a}
+\;\ell(\boldsymbol{\mu}_a, \boldsymbol{\Sigma}_a)$ can be determined using profile likelihood: 
+\[
+\hat{\boldsymbol{\Sigma}}_a
+=
+\arg\max_{\boldsymbol{\Sigma}_a \succeq 0}
+\ell_p(\boldsymbol{\Sigma}_a),
+\quad
+\hat{\boldsymbol{\mu}}_a
+=
+\left(
+\sum_{i=1}^{n}
+\frac{\boldsymbol{x}_i\boldsymbol{x}_i^\top}
+{\boldsymbol{x}_i^\top \hat{\boldsymbol{\Sigma}}_a \boldsymbol{x}_i+\Sigma^{L}_{i,a,t}}
+\right)^{-1}
+\left(
+\sum_{i=1}^{n}
+\frac{\boldsymbol{x}_i \hat{\theta}^{L}_{i,a,t}}
+{\boldsymbol{x}_i^\top \hat{\boldsymbol{\Sigma}}_a \boldsymbol{x}_i+\Sigma^{L}_{i,a,t}}
+\right)
+\]
+Note that EB assumes $\theta_{i,a,0} \perp\!\!\!\!\perp \theta_{i,a,1}$ because we only observe two of the three unique entries in the covariance matrix for $\text{Var}(\hat{\theta}^L_{i,a,t} \mid \boldsymbol{\mu}_a, \boldsymbol{\Sigma}_a)$, as described above. We cannot recover three estimates with only two equations. Thus, in this case, we simply estimate the two variance entries, while assuming there is no covariance:
+
+$$\hat{\boldsymbol{\Sigma}}_a = \begin{pmatrix} \hat{\tau}_{a,00}^2 & \hat{\tau}_{a,01} \\ \hat{\tau}_{a,10} & \hat{\tau}_{a,11}^2 \end{pmatrix} = \begin{pmatrix} \hat{\tau}_{a,00}^2 & 0 \\ 0 & \hat{\tau}_{a,11}^2 \end{pmatrix}$$
+
+In practice, as done in the scalar vanilla MAB case, we recover the diagonal entries of the covariance matrix using MOM estimation. This is because there is no closed form for $\hat{\boldsymbol{\Sigma}}_a$, so using MLE requires iteration, which we avoid for simplicity. 
+\begin{align*}
+    \hat{\tau}_{a,00}^2 &= \frac{1}{n_0 - 1}\sum_{i: c_i=0}\left(\hat{\theta}^L_{i,a,t} - \bar{\theta}^L_{0,a,t}\right)^2 - \overline{\Sigma}^L_{0,a,t}\\
+    \hat{\tau}_{a,11}^2 &= \frac{1}{n_1 - 1}\sum_{i: c_i=1}\left(\hat{\theta}^L_{i,a,t} - \bar{\theta}^L_{1,a,t}\right)^2 - \overline{\Sigma}^L_{1,a,t} - \hat{\tau}_{a,00}^2
+\end{align*}
+Then, we actually do use the closed-form MLE equation to calculate the MLE for $\hat{\boldsymbol{\mu}}_a$. 
+
+Now, using these hyperparameter estimates, the  posterior distribution $\boldsymbol{\theta}_{i,a}
+\mid
+\hat{\theta}^{L}_{i,a,t}$ is empirically approximated as:
+$$\boldsymbol{\theta}_{i,a}
+\mid
+\hat{\theta}^{L}_{i,a,t}
+\sim
+\mathcal{N}
+\left(
+\left(
+\hat{\boldsymbol{\Sigma}}_a^{-1}
++
+\frac{1}{\Sigma^{L}_{i,a,t}}
+\boldsymbol{x}_i\boldsymbol{x}_i^\top
+\right)^{-1}
+\left(
+\hat{\boldsymbol{\Sigma}}_a^{-1}\hat{\boldsymbol{\mu}}_a
++
+\frac{1}{\Sigma^{L}_{i,a,t}}
+\boldsymbol{x}_i \hat{\theta}^{L}_{i,a,t}
+\right),
+\left(
+\hat{\boldsymbol{\Sigma}}_a^{-1}
++
+\frac{1}{\Sigma^{L}_{i,a,t}}
+\boldsymbol{x}_i\boldsymbol{x}_i^\top
+\right)^{-1}
+\right)$$
+
+Finally, EB can similarly use the sampling approach described in Section \ref{action} to select an action for each individual.
+$$a_{i,t}^* =
+\begin{cases}
+1, & \text{with probability }
+\textrm{P}\!\left(
+\boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,1}
+>
+\boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,0}
+\right) \\[0em]
+0, & \text{with probability }
+1-
+\textrm{P}\!\left(
+\boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,1}
+>
+\boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,0}
+\right)
+\end{cases}$$
+\textit{Note:} When implementing empirical Bayes in practice, in lieu of calculating this probability, a random draw would be performed from each of the two $\boldsymbol{\theta}_{i,a}$ distributions, and the action yielding the greater $\boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,a}$ value will be selected.
+
+\begin{codechunk} {Empircal Bayes}
+for (int t=0; t<T; ++t) {
+
+    // --- Step 1: update individual scalar estimates ---
+    // KEY DIFFERENCE: scalar estimates instead of 2D ridge estimates —
+    // c_i is fixed so only one context is ever observed per participant
+    for (int i=0; i<n; ++i) for (int a=0; a<2; ++a) {
+        scalar_estimate(state[i][a], lam, theta_hat[i][a], sigma_hat[i][a]);
+        has_data[i][a] = state[i][a].n_obs > 0;
+    }
+
+    // --- Step 2: MOM hyperparameter estimation per arm ---
+    // KEY DIFFERENCE: MOM uses two context groups instead of EM —
+    // since c_i is fixed, we can only identify two variance equations
+    // (one per context group), so Sigma_pop is constrained to be diagonal
+    for (int a=0; a<2; ++a) {
+        // split participants into c_i=0 and c_i=1 groups
+        std::vector<int> grp0, grp1;
+        for (int i=0; i<n; ++i) {
+            if (!has_data[i][a]) continue;
+            (env.context[i]==0 ? grp0 : grp1).push_back(i);
+        }
+        int n0=grp0.size(), n1=grp1.size();
+
+        // MOM for tau2_{a,00} from c_i=0 group:
+        // Var(theta_hat^L | c=0) = tau2_00 + mean(Sigma^L),  x_i=(1,0)
+        // so tau2_00 = sample_var(theta_hat^L in c=0 group) - mean(Sigma^L)
+        double tau2_00 = 0.0;
+        if (n0 > 1) {
+            double m0=0; for (int i:grp0) m0+=theta_hat[i][a]; m0/=n0;
+            double v0=0; for (int i:grp0){double d=theta_hat[i][a]-m0; v0+=d*d;} v0/=(n0-1);
+            double sv0=0; for (int i:grp0) sv0+=sigma_hat[i][a]; sv0/=n0;
+            tau2_00 = std::max(v0 - sv0, 0.0);
+        }
+
+        // MOM for tau2_{a,11} from c_i=1 group:
+        // Var(theta_hat^L | c=1) = tau2_00 + tau2_11 + mean(Sigma^L),  x_i=(1,1)
+        // so tau2_11 = sample_var(theta_hat^L in c=1 group) - mean(Sigma^L) - tau2_00
+        double tau2_11 = 0.0;
+        if (n1 > 1) {
+            double m1=0; for (int i:grp1) m1+=theta_hat[i][a]; m1/=n1;
+            double v1=0; for (int i:grp1){double d=theta_hat[i][a]-m1; v1+=d*d;} v1/=(n1-1);
+            double sv1=0; for (int i:grp1) sv1+=sigma_hat[i][a]; sv1/=n1;
+            tau2_11 = std::max(v1 - sv1 - tau2_00, 0.0);
+        }
+
+        // diagonal Sigma_pop: off-diagonals fixed at 0 (not identifiable)
+        // small floor ensures invertibility
+        Sigma_pop[a] = { std::max(tau2_00, 1e-8), 0.0,
+                         0.0, std::max(tau2_11, 1e-8) };
+
+        // closed-form MLE for mu_pop after Sigma_pop fixed (profile likelihood):
+        //   mu_hat = (sum_i x_i x_i^T / v_i)^{-1} (sum_i x_i theta_hat^L_i / v_i)
+        //   where v_i = x_i^T Sigma_pop x_i + Sigma^L_{i,a}
+        M2  A = {0,0,0,0};
+        Vec b = {0.0, 0.0};
+        for (int i=0; i<n; ++i) {
+            if (!has_data[i][a]) continue;
+            Vec xi = {1.0, (double)env.context[i]};
+            double v_i = quad2(xi, Sigma_pop[a]) + sigma_hat[i][a];
+            if (v_i < 1e-20) continue;
+            A = add2(A, scale2(outer2(xi), 1.0/v_i));
+            b[0] += xi[0]*theta_hat[i][a]/v_i;
+            b[1] += xi[1]*theta_hat[i][a]/v_i;
+        }
+        mu_pop[a] = matvec2(inv2(A), b);
+    }
+
+    // --- Step 3: EB posterior and action selection ---
+    for (int i=0; i<n; ++i) {
+        int a_sel;
+        if (!has_data[i][0] || !has_data[i][1]) {
+            a_sel = ud(rng);
+        } else {
+            Vec xi = {1.0, (double)env.context[i]};
+            double reward_mean[2], reward_var[2];
+            for (int a=0; a<2; ++a) {
+                // KEY DIFFERENCE: rank-1 posterior update using x_i x_i^T —
+                // only one scalar observation per participant, so the 2D
+                // posterior is updated only in the direction of x_i
+                // post_cov^{-1} = Sigma_pop^{-1} + (1/Sigma^L) * x_i x_i^T
+                M2 Sp_inv       = inv2(Sigma_pop[a]);
+                M2 post_cov_inv = add2(Sp_inv,
+                                      scale2(outer2(xi), 1.0/sigma_hat[i][a]));
+                M2 post_cov     = inv2(post_cov_inv);
+                // post_mean = post_cov * (Sigma_pop^{-1} mu_pop + x_i theta_hat^L / Sigma^L)
+                Vec rhs = matvec2(Sp_inv, mu_pop[a]);
+                rhs[0] += xi[0]*theta_hat[i][a]/sigma_hat[i][a];
+                rhs[1] += xi[1]*theta_hat[i][a]/sigma_hat[i][a];
+                Vec post_mean = matvec2(post_cov, rhs);
+                // project posterior onto participant's context to get
+                // expected reward and variance for arm a
+                reward_mean[a] = xi[0]*post_mean[0] + xi[1]*post_mean[1];
+                reward_var[a]  = quad2(xi, post_cov);
+            }
+            // select arm with probability P(theta_{i,1} > theta_{i,0})
+            double diff = reward_mean[1]-reward_mean[0];
+            double sd   = std::sqrt(std::max(reward_var[0]+reward_var[1], 1e-20));
+            a_sel = (ur(rng) < normal_cdf(diff/sd)) ? 1 : 0;
+        }
+        double mean_r = expected_reward(env, i, a_sel);
+        double r      = mean_r + sigma_r*nd(rng);
+        update_scalar(state[i][a_sel], r);
+        total_regret += best_expected(env, i) - mean_r;
+    }
+}
+\end{codechunk}
+
+\subsectiontitle{Simulations}
+
+\nys{The graphs from the simulations testing these hypothesis can be found on \href{https://docs.google.com/presentation/d/1_fpqbWhbSr6PqojAD5nI7F5XB7wxYRbpy_gOvZfLmjQ/edit?usp=sharing}{slides} 11-17; as discussed, we haven't added them to the write-up yet.}
+
+Our simulations have confirmed that our conjectures about unpooled, EB, and pooled algorithms performing best in high, middle, and low heterogeneity-to-noise ratios from Section~\ref{time-var-sim} hold true in this time-invariant context scenario. 
+
+\nys{Just tested this one hypothesis since this was the one place I thought the result would be different from the time-variant scenario:} However, the time-invariant context introduces one unique vulnerability that may impact the algorithm's decision-making and regret. 
+
+Because only one context is observed per participant, EB assumes
+$$\boldsymbol{\hat{\Sigma}}_a
+=
+\begin{pmatrix}
+\hat{\tau}_{a,00}^2 & \tau_{a,01}=0 \\
+\tau_{a,10}=0 & \tau_{a,11}^2
+\end{pmatrix},$$
+whereas in the underlying environment, it is possible to have covariance $\tau_{a,01}=\tau_{a,10}\neq0$. Since EB is unable to recover the diagonal elements, covariance that may originally have been due to $\tau_{a,10}$ and $\tau_{a,01}$ are attributed evenly to $\hat{\tau}_{a,00}^2$ and $\tau_{a,11}^2$.
+
+The oracle knows that the true variability of the learning algorithm's estimates are as follows:
+$$\text{Var}(\hat{\theta}^L_{i,a,t} \mid \boldsymbol{\mu}_a, \boldsymbol{\Sigma}_a) = \boldsymbol{x}_i^\top\boldsymbol{\Sigma}_a\boldsymbol{x}_i+\Sigma_{i,a,t}^{L}=
+\begin{cases}
+\tau_{a,00}^2 + \Sigma^L_{i,a,t} & c_i = 0, \; \boldsymbol{x}_i = (1,0)^\top \\
+\tau_{a,00}^2 + 2\tau_{a,01} + \tau_{a,11}^2 + \Sigma^L_{i,a,t} & c_i = 1, \; \boldsymbol{x}_i = (1,1)^\top
+\end{cases}$$
+
+EB's model isb accurate for participants where $c_i=0$; its estimates of the diagonals (coefficient variances) for $c_i=0$ are:
+\begin{align*}
+    \hat{\tau}_{a,00}^2 = \underbrace{\frac{1}{n_0 - 1}\sum_{i: c_i = 0}\left(\hat{\theta}^L_{i,a,t} - \bar{\theta}^L_{0,a,t}\right)^2}_{\text{total variability in } c_i = 0 \text{ group}} - \bar{\Sigma}^L_{0,a,t}
+\end{align*}
+In the above case, $\frac{1}{n_0 - 1}\sum_{i: c_i = 0}\left(\hat{\theta}^L_{i,a,t} - \bar{\theta}^L_{0,a,t}\right)^2$ estimates $\tau_{a,00}^2 + \bar{\Sigma}^L_{0,a,t}$; in other words, $\hat{\tau}_{a,00}^2$ estimates $\tau_{a,00}^2$.
+
+However, EB's model is inaccurate for $c_i=1$. Specifically, its estimate of $\tau^2_{a,11}$, which is how heterogeneous $\theta_{i,a,1}$ (the effect of context) is across the population, becomes biased for both $a$.
+\begin{align*}
+    &\hat{\tau}_{a,11}^2 = \underbrace{\frac{1}{n_1 - 1}\sum_{i: c_i = 1}\left(\hat{\theta}^L_{i,a,t} - \bar{\theta}^L_{1,a,t}\right)^2}_{\text{total variability in } c_i = 1 \text{ group}} - \bar{\Sigma}^L_{1,a,t} - \hat{\tau}_{a,00}^2
+\end{align*} 
+Now, $\frac{1}{n_1 - 1}\sum_{i: c_i = 1}\left(\hat{\theta}^L_{i,a,t} - \bar{\theta}^L_{1,a,t}\right)^2$ estimates $\tau_{a,00}^2 + 2\tau_{a,01} + \tau_{a,11}^2 + \bar{\Sigma}^L_{1,a,t}$, and thus $\hat{\tau}_{a,11}^2$ estimates $\tau_{a,11}^2 + 2\tau_{a,01}$. 
+
+If $\tau_{a,01}>0$, there is positive covariance between $\theta_{i,a,0}$ and $\theta_{i,a,1}$. This implies that there is an association between a participant's $\theta_{i,a,0}$ and the effect of their context when $c_i=1$, $\theta_{i,a,1}$. Intuitively, we might understand this as people who respond strongly at baseline get a strong boost because their $c_i=1$; people who respond weakly at baseline get less of a boost. In this scenario, $\hat{\tau}^2_{a,11}$ is too high because EB is unable to detect this covariance and attributes it to heterogeneity in $\theta_{i,a,1}$. It doesn't know participant $i$'s $\theta_{i,a,1}$ is high because $\theta_{i,a,0}$; it thinks $\theta_{i,a,1}$ is high simply because $\theta_{i,a,1}$ varies a lot in the population. Thus, it takes more of an unpooled approach, trusting the population-level means less and weighing the individual-level means more heavily.
+
+Meanwhile, if $\tau_{a,01}<0$, there is negative covariance between $\theta_{i,a,0}$ and $\theta_{i,a,1}$. This implies participants with a high baseline get \textit{less} of a boost from their context.  In this scenario, $\hat{\tau}^2_{a,11}$ is too low; EB doesn't know that $\theta_{i,a,1}$ is lower because participant $i$'s $\theta_{i,a,0}$ was higher; instead, it thinks $\theta_{i,a,1}$ does not vary much in the population. Thus, it is more confident it and weighs the population-level means more heavily than it should. 
+
+These two scenarios where $\tau_{a,01}>0$ and $\tau_{a,01}<0$ are meaningful to test because they can cause EB to act like a worse version of unpooled and pooled learning respectively. Since we typically work in \enquote{difficult} environments with low-to-moderate heterogeneity-to-noise ratios, we are specifically interested in the scenario where $\tau_{a,01}$ is negative, and pooled and EB are the two competing top performers. \nys{This was the scenario with the interesting graph we discussed.} When $\tau_{a,01}$ is negative, EB is pulled towards pooled behavior because it believes there is less heterogeneity than there actually is. \textit{However, EB still relies on individual estimates rather than pooled estimates in the learning step, weakening its performance in comparison to true pooled algorithms.} Thus, we conjecture that when $\tau_{a,01}$ is sufficiently negative, pooled algorithms will outperform EB. \nys{This matches what we see in the notable graphs we discussed for this environment, which are on slide 17: When we decrease the number of time points per individual, we expect individual learning to perform worse, and thus, when we change $T=200$ to $T=10$, we see the gap between EB and pooled's performance is reduced because EB's individual estimates are noisier. For $T=200$, EB always performs best; pooled sucks because EB has so much data and good individual-level estimates. However, for $T=10$, pooled performs better in several cases. Also, as expected, EB's regret increases with $P(c_i=1)$ ($x$-axis), since that's the case it estimates inaccurately.}
+
+\nys{Could sweep $\tau_{a,01}/T$ values instead of $P(c_i=1)$ scenarios to better test this hypothesis.}
+
+\newpage
+
+\sectiontitle{Two Participant-Specific Context Variables}
+
+\sam{The next setting will be when there is both a time varying state, $s_{i,t}$ (called $c_{it}$ above) and a baseline context, $c_{i}$.  The EB action selection strategy will then use a  multivariate linear regression model.} \nys{Got it! Will add that after we sort out the first two cases.}
+
+\nys{\textit{\textbf{DO NOT READ BELOW}—per our meeting from Monday, waiting for your feedback on Section 2 before I update below!}}
+
+\nys{Note to self: Need to specify models! Make each part's models clear.}
+
+Below, we describe the scenario where there are two participant-specific context variables, one of which varies by time while the other does not. 
+
+\subsectiontitle{True Environment}
+
+There are two context variables that influence the participant's reward in this third scenario. The time-invariant context variable $c_{i}  \in \{0,1\}$ that represents an unchanging demographic characteristic of the participant, such as sex. The time-variant context variable $s_{i,t}$ can represent whether the participant is sick or healthy, which varies with time. Both are distributed $\text{Bern}(p)$, and $c_{i} \perp\!\!\!\perp s_{i,t}$.
+
+In response to an action selected by the algorithm, the reward is generated as follows:
+
+$$R_{i,t}(a) = \boldsymbol{\theta}_{i,a}^\top \boldsymbol{x}_{i,t} + \varepsilon_{i,t,a} = \theta_{i,a,0} + \theta_{i,a,1}c_i + \theta_{i,a,2}s_{i,t} + \varepsilon_{i,t,a}$$
+
+Furthermore, each participant's parameters are drawn from a population-level hyper-distribution:
+$$\boldsymbol{\theta}_{i,a} \sim \mathcal{N}(\boldsymbol{\mu}_a, \boldsymbol{\Sigma}_a), \text{ where } \boldsymbol{\mu}_a = \begin{pmatrix} \mu_{a,0} \\ \mu_{a,1} \\ \mu_{a,2} \end{pmatrix}, \text{ and } \boldsymbol{\Sigma}_a = \begin{pmatrix} \tau_{a,00}^2 & \tau_{a,01} & \tau_{a,02} \\ \tau_{a,01} & \tau_{a,11}^2 & \tau_{a,12} \\ \tau_{a,02} & \tau_{a,12} & \tau_{a,22}^2 \end{pmatrix}$$
+
+Again, the $\{\theta_{i,a}\}_{i\in[n],a\in \{0,1\}} $ are independent. Furthermore, $\tau_{a,01}=\tau_{a,10}$, $\tau_{a,02}=\tau_{a,20}$, and $\tau_{a,12}=\tau_{a,21}$. 
+
+\subsectiontitle{Learning Algorithm}
+
+The learning algorithm does not have knowledge of the above environment. The model for the reward used by
+the learning algorithm is
+
+$$\hat{\boldsymbol{\theta}}_{i,a,t}^{L}
+=
+\left(
+\lambda I +
+\sum_{j=1}^{n_{i,a,t}} \boldsymbol{x}_{i,j}^{L}(\boldsymbol{x}_{i,j}^{L})^\top
+\right)^{-1}
+\left(
+\sum_{j=1}^{n_{i,a,t}} \boldsymbol{x}_{i,j}^{L}\, r_{i,a,j}
+\right)$$
+where $\boldsymbol{x}_{i,j}^{L} = (1, s_{i,j})^\top$ and $\hat{\boldsymbol{\theta}}_{i,a,t}^{L}$ is equivalent to the $(\theta_{i,a,0} + \theta_{i,a,1}c_i,\ \theta_{i,a,2})^\top$ in the true underlying environment. Since only one context is observed per participant, $c_i$ is excluded from the $\boldsymbol{x}_{i,j}^{L}$ used in the regression by the learning algorithm.
+
+From a Bayesian perspective, the ridge regression's prior is:
+
+$$\boldsymbol{\theta}_{i,a}^{L} \sim \mathcal{N}(0, \tau_{0,a}^2 I), \quad \lambda = \frac{\sigma_{i,a}^{2,L}}{\tau_{0,a}^2} = 10^{-6}.$$
+
+Equivalently, the prior mean is $0$, and the prior variance is $10^{-6}$ the unknown individual-level noise parameter, $\sigma_{i,a}^{2,L}$. 
+
+The algorithm quantifies its uncertainty about the bivariate it produces as follows:
+
+$$\boldsymbol{\Sigma}_{i,a,t}^{L}
+=
+\hat{\sigma}_{i,a,t}^2
+\left(
+\lambda I +
+\sum_{j=1}^{n_{i,a,t}} \boldsymbol{x}_{i,j}^{L}(\boldsymbol{x}_{i,j}^{L})^\top
+\right)^{-1}, \quad
+\hat{\sigma}_{i,a,t}^2
+=
+\frac{
+\sum_{j=1}^{n_{i,a,t}}
+\left(
+r_{i,a,j} - (\boldsymbol{x}_{i,j}^{L})^\top \hat{\boldsymbol{\theta}}_{i,a,t}^{L}
+\right)^2
+}{
+n_{i,a,t} - 2
+}.$$
+
+Note that in the learning algorithm's world, $\hat{\boldsymbol{\theta}}_{i,a,t}^{L}$ is bivariate and $\boldsymbol{\Sigma}_{i,a,t}^{L}$ is a $2 \text{x}2$ matrix. 
+
+\subsectiontitle{Action Selection Strategy}
+
+\subsubsectiontitle{Empirical Bayes}
+
+From the learning algorithm, the EB action selection strategy receives bivariate $\hat{\boldsymbol{\theta}}_{i,a,t}^{L}$ and a $2 \text{x}2$ matrix that measures the learning algorithm's uncertainty about its estimates, $\boldsymbol{\Sigma}_{i,a,t}^{L}$. Additionally, EB knows that $\boldsymbol{x}_{i,t}^{L} = (1, s_{i,t})^\top$.
+
+$$\hat{\boldsymbol{\theta}}_{i,a,t}^{L} \mid \boldsymbol{\theta}_{i,a}
+\sim
+\mathcal{N}\!\left(\boldsymbol{D}_i^\top \boldsymbol{\theta}_{i,a},\, \boldsymbol{\Sigma}_{i,a,t}^{L}\right), \quad
+\boldsymbol{D}_i^\top = \begin{pmatrix} 1 & c_i & 0 \\ 0 & 0 & 1 \end{pmatrix}$$
+
+where $\boldsymbol{D}_i^\top \boldsymbol{\theta}_{i,a} = \begin{pmatrix} 1 & c_i & 0 \\ 0 & 0 & 1 \end{pmatrix} \begin{pmatrix} \theta_{i,a,0} \\ \theta_{i,a,1} \\ \theta_{i,a,2} \end{pmatrix} = \begin{pmatrix} \theta_{i,a,0} + \theta_{i,a,1}c_i \\ \theta_{i,a,2} \end{pmatrix}$.
+
+Then, EB believes the distribution of the estimates is:
+
+$$\hat{\boldsymbol{\theta}}_{i,a,t}^{L} \mid \boldsymbol{\mu}_a, \boldsymbol{\Sigma}_a
+\sim
+\mathcal{N}\!\left(\boldsymbol{D}_i^\top \boldsymbol{\mu}_a,\;
+\boldsymbol{D}_i^\top \boldsymbol{\Sigma}_a \boldsymbol{D}_i + \boldsymbol{\Sigma}_{i,a,t}^{L}\right)$$
+
+And the posterior distribution is:
+
+$$\boldsymbol{\theta}_{i,a} \mid \hat{\boldsymbol{\theta}}_{i,a,t}^{L}
+\sim
+\mathcal{N}\!\left(
+\left(\hat{\boldsymbol{\Sigma}}_a^{-1} + \boldsymbol{D}_i (\boldsymbol{\Sigma}_{i,a,t}^{L})^{-1} \boldsymbol{D}_i^\top\right)^{-1}
+\left(\hat{\boldsymbol{\Sigma}}_a^{-1}\hat{\boldsymbol{\mu}}_a + \boldsymbol{D}_i (\boldsymbol{\Sigma}_{i,a,t}^{L})^{-1} \hat{\boldsymbol{\theta}}_{i,a,t}^{L}\right),\;
+\left(\hat{\boldsymbol{\Sigma}}_a^{-1} + \boldsymbol{D}_i (\boldsymbol{\Sigma}_{i,a,t}^{L})^{-1} \boldsymbol{D}_i^\top\right)^{-1}
+\right)$$
+
+\subsubsectiontitle{Unpooled Thompson Sampling}
+
+$$\boldsymbol{\theta}_{i,a,t}^{L} \sim \mathcal{N}\!\left(\hat{\boldsymbol{\theta}}_{i,a,t}^{L}, \boldsymbol{\Sigma}_{i,a,t}^{L}\right)$$
+
+$$R_{i,t}(a) = (\boldsymbol{x}_{i,t}^{L})^\top \boldsymbol{\theta}_{i,a,t}^{L}, \quad a_{i,t}^* = \arg\max_{a \in \{0,1\}} R_{i,t}(a)$$
+
+\subsubsectiontitle{Pooled Thompson Sampling}
+
+% \nys{Ignore the below section.} 
+
+% \subsectiontitle{Algorithm 2: Context-Aware Learning}
+% Alternatively, we can create a learning algorithm that \textit{is} aware of the existence of a context variable, though this algorithm still only observes rewards from each participant under a single context.
+
+% \subsubsectiontitle{Learning Algorithm}
+
+% At each time point, the learning algorithm will observe all of a participant's rewards up to time $t$ as well as the value of the participant's $c_{i}$.  
+
+% The learning algorithm will use ridge regression to learn the coefficient vector for each participant with $\lambda=10^{-6}$. Inclusion of a regularization term guarantees matrix invertibility.
+
+% Recall that $n_{i,a,t}$ is used to designate the number of times participant $i$ has selected action $a$ by time point $t$; the index $j=1, 2, \hdots, n_{i,a,t}$, designating the 1st time that participant chose action $a$, the 2nd time, the 3rd time, etc.
+
+% $$\hat{\boldsymbol{\theta}}_{i,a,t}
+% =
+% \left(
+% \lambda I + n_{i,a,t} \mathbf{x}_i \mathbf{x}_i^\top
+% \right)^{-1}
+% \left(
+% \mathbf{x}_i \sum_{j=1}^{n_{i,a,t}} r_{i,a,j}
+% \right)$$
+% For individuals whose $c_i=1$, as it is impossible for the learning algorithm to know how much of the reward to attribute to each of the two coefficients, it will split the evenly between the two coefficients, which will be equal to each other.
+
+% We determine our uncertainty surrounding our estimate using the residual variance as follows:
+% $$\boldsymbol{\Sigma}_{i,a,t}
+% =\hat{\sigma}_{i,a,t}^2
+% \left(
+% \lambda I + n_{i,a,t} \mathbf{x}_i \mathbf{x}_i^\top
+% \right)^{-1}, \quad \hat{\sigma}_{i,a,t}^2
+% =\frac{
+% \sum_{j=1}^{n_{i,a,t}}
+% \left(
+% r_{i,a,j} - \mathbf{x}_i^\top \hat{\boldsymbol{\theta}}_{i,a,t}
+% \right)^2
+% }{
+% n_{i,a,t} - 1
+% }$$
+
+% Notably, given that the context $c_i$ is fixed, the denominator in the residual variance expression is $n_{i,a,t} - 1$ rather than $n_{i,a,t} - 2$.
+
+% \subsubsectiontitle{Action Selection Strategy}
+
+% Following the derivation described in Section \ref{action}, the population-level hyperparameters can similarly be estimated. The posterior distribution is as follows: 
+
+% \[
+% \boldsymbol{\theta}_{i,a} \mid \hat{\boldsymbol{\theta}}_{i,a,t}
+% \sim
+% \mathcal{N}
+% \left(
+% \left(\hat{\boldsymbol{\Sigma}}_a^{-1} + \boldsymbol{\Sigma}_{i,a,t}^{-1}\right)^{-1}
+% \left(
+% \hat{\boldsymbol{\Sigma}}_a^{-1} \hat{\boldsymbol{\mu}}_a
+% + \boldsymbol{\Sigma}_{i,a,t}^{-1} \hat{\boldsymbol{\theta}}_{i,a,t}
+% \right),
+% \left(\hat{\boldsymbol{\Sigma}}_a^{-1} + \boldsymbol{\Sigma}_{i,a,t}^{-1}\right)^{-1}
+% \right)
+% \]
+
+% After determining the posterior distribution $\boldsymbol{\theta}_{i,a} \mid \hat{\boldsymbol{\theta}}_{i,a,t}$, EB can similarly use the sampling appraoch described in Section \ref{action} to select an action for each individual.
+
+%% IGNORE BELOW
+
+% \sectiontitle{Additional Settings}
+
+% A third setting is possible where we suppose that context $c_t$ is a time-variant, population-level variable.In this scenario, $c_t \in \{0,1\}$ and $c_t \sim \textrm{Bern}(0.2)$. This may occur in two scenarios: First, if $c_t$ designates a time-specific variable, such as weather, \textit{and} all participants start at the same time, which is highly implausible. Realistically, this could also occur if $c_t=t$—we expect the reward to change with how long the participants have been in the study—but in this case, the learning algorithm, which updates its beliefs over time, already takes this into consideration. Thus, we will not be exploring this setting.
+
+% \subsectiontitle{Learning Algorithm}
+
+% \[
+% \hat{\boldsymbol{\theta}}_{i,a,t}
+% =
+% \left(
+% \lambda I + \sum_{j=1}^{n_{i,a,t}} \mathbf{x}_t \mathbf{x}_t^\top
+% \right)^{-1}
+% \left(
+% \sum_{j=1}^{n_{i,a,t}} \mathbf{x}_t r_{i,a,j}
+% \right)
+% \]
+
+% \[
+% \boldsymbol{\Sigma}_{i,a,t}
+% =
+% \hat{\sigma}_a^2
+% \left(
+% \lambda I + \sum_{j=1}^{n_{i,a,t}} \mathbf{x}_t \mathbf{x}_t^\top
+% \right)^{-1}, \quad 
+% \hat{\sigma}_a^2
+% =
+% \frac{
+% \sum_{i=1}^n \sum_{j=1}^{n_{i,a,t}}
+% \left(
+% r_{i,a,j} - \mathbf{x}_t^\top \hat{\boldsymbol{\theta}}_{i,a,t}
+% \right)^2
+% }{
+% \sum_{i=1}^n (n_{i,a,t}-2)
+% }
+% \]
+
+% \subsectiontitle{Action Selection Strategy}
+% Actions are selected using EB as follows:
+% \[
+% \boldsymbol{\theta}_{i,a} \mid \hat{\boldsymbol{\theta}}_{i,a,t}
+% \sim
+% \mathcal{N}
+% \left(
+% \left(\hat{\boldsymbol{\Sigma}}_a^{-1} + \boldsymbol{\Sigma}_{i,a,t}^{-1}\right)^{-1}
+% \left(
+% \hat{\boldsymbol{\Sigma}}_a^{-1} \hat{\boldsymbol{\mu}}_a
+% + \boldsymbol{\Sigma}_{i,a,t}^{-1} \hat{\boldsymbol{\theta}}_{i,a,t}
+% \right),
+% \left(\hat{\boldsymbol{\Sigma}}_a^{-1} + \boldsymbol{\Sigma}_{i,a,t}^{-1}\right)^{-1}
+% \right)
+% \]
+
+% $$a_{i,t}^* =
+% \begin{cases}
+% 1, & \text{with probability }
+% \textrm{P}\!\left(
+% \boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,1}
+% >
+% \boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,0}
+% \right) \\[0em]
+% 0, & \text{with probability }
+% 1-
+% \textrm{P}\!\left(
+% \boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,1}
+% >
+% \boldsymbol{x}_{i,t}^\top \boldsymbol{\theta}_{i,0}
+% \right)
+% \end{cases}$$
+
+\newpage
+
+\sectiontitle{Discussion}
+
+A third setting is possible where we suppose that context $c_t$ is a time-variant, population-level variable.In this scenario, $c_t \in \{0,1\}$ and $c_t \sim \textrm{Bern}(0.2)$. This may occur in two scenarios: First, if $c_t$ designates a time-specific variable, such as weather, \textit{and} all participants start at the same time, which is highly implausible. Realistically, this could also occur if $c_t=t$—we expect the reward to change with how long the participants have been in the study—but in this case, the learning algorithm, which updates its beliefs over time, already takes this into consideration. Thus, we will not be exploring this setting.
+
+% \bibliographystyle{plain}
+% \bibliography{bib}
+
+
+\end{document}

@@ -1,0 +1,195 @@
+\documentclass[letterpaper, 11pt]{extarticle}
+\input{preamble}
+\input{format}
+\input{commands}
+\usepackage{newpxmath}
+\usepackage[margin=0.95in]{geometry}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\definecolor{softpurple}{HTML}{9C88B9}
+\definecolor{softblue}{HTML}{B8BDDE}
+\usepackage{cancel}
+\usepackage{csquotes}
+\usepackage{enumitem}
+
+\definecolor{darkblue}{RGB}{13, 39, 61}  % Yankees Blue
+\definecolor{mediumblue}{RGB}{62, 105, 133}  % Teal Blue
+\definecolor{lightblue}{RGB}{138, 167, 188}  % Pewter Blue
+\definecolor{pastelblue}{RGB}{166, 190, 209}  % Pastel Blue
+\definecolor{columbiablue}{RGB}{205, 215, 223}  % Columbia Blue
+\definecolor{graytext}{RGB}{90, 90, 90}  % Neutral grey for comments
+\usepackage{listings}
+\lstset{
+  language=R,
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny,
+  stepnumber=1}
+
+
+\lstset{ 
+  language=R,
+  basicstyle=\ttfamily\small\color{darkblue},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  numbersep=5pt,
+  backgroundcolor=\color{white},
+  showspaces=false,
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=true,
+  captionpos=b,
+  escapeinside={\%*}{*)},
+  commentstyle=\color{graytext},
+  keywordstyle=\color{softpurple},
+  stringstyle=\color{pastelblue}
+}
+
+\usepackage{color}
+\usepackage{framed}
+\newcommand{\sam}[1]{
+  {\color{blue} [SAM: {#1}]}
+ }
+
+% Custom colors
+\definecolor{shadecolor}{RGB}{255,255,255}  % white background
+\definecolor{Rcode}{RGB}{136, 18, 128}      % keyword purple (similar to print)
+\definecolor{Rout}{RGB}{90, 90, 90}         % output gray
+\definecolor{Rcomment}{RGB}{110,110,110}    % comment gray
+
+% Redefine how R chunks are styled
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd{\@Verbatim}{\fbox}{\color{black}}{}{}
+\makeatother
+
+% Required if using knitr
+\usepackage{alltt}
+\usepackage{fancyvrb}
+\DefineVerbatimEnvironment{Sinput}{Verbatim}{fontshape=sl,formatcom=\color{Rcode},commandchars=\\\{\}}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{formatcom=\color{Rout}}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{formatcom=\color{Rcode}}
+
+\geometry{letterpaper}                  
+\hypersetup{colorlinks=false, allcolors=blue}
+
+\begin{document}
+\begin{Large}
+    \textsf{\textbf{Empirical Bayes Testbed}}   \par
+    Statistical Reinforcement Learning Lab
+\end{Large}
+
+\vspace{2ex}
+
+\textsf{\textbf{Simulation Setup}}
+
+There are $N$ participants denoted by subscript $i$ with $i \in  [1:N]$ and $T$ decision times denoted by subscript $t$ with $t \in [1:T]$.  $\mathcal{A}_i^{(t)}$ denotes the action assigned to the participant $i$ at time $t$; $T_{i,a}$ denotes the number of times an individual was assigned action $a$; $\mathcal{R}_{i,a}^{(t)}$ denotes the reward after $\mathcal{A}_i^{(t)}=a$.
+
+We formulate this simulation as a multi-armed bandit problem with two arms. \sam{ In prior sentence do you mean that the algorithm will be a gaussian thompson-sampling two-armed bandit algorithm?  I think this is what you mean.} At each decision time, the algorithm will choose an action for each participant. After the algorithm chooses an action, the environment provides a reward.
+
+\textsf{\textbf{Underlying True Environment}} 
+
+For any action, $a$, the reward for participant $i$ is generated from a  Gaussian distribution for that participant. 
+\[
+\mathcal{R}_i^{(t)} \;\big|\; \mathcal{A}_i^{(t)} = a 
+\;\sim\; \mathcal{N}\!\big(\theta_{i,a}, \, \sigma_{a}^2\big).
+\]
+
+\textit{Individual-level noise}: The variance  $\sigma^2_a$ is constant across participants in a given arm. \sam{this is not an assumption, this is a description of the environment.}
+
+\textit{Population-level heterogeneity:} Parameter $\theta_{i,a}$ varies across participants and is drawn from a Gaussian distribution:  
+\[
+\theta_{i,a} \;\sim\; \mathcal{N}\!\big(\mu_a^*, \, {\tau_a^*}^2\big).
+\]
+
+
+
+\textsf{\textbf{Algorithm}}
+\sam{The algorithm is unaware of the true underlying dynamics in the simulation environment.  So when you go to this section, you should "forget" how you set up the environment.   Of course here things are pretty simple since there is no state but it is good to get this straight now.}
+
+\sam{Recall that the  online RL algorithms we consider are composed of two elements.   Element 1 is a learning algorithm--usually in our case this algorithm has a bayesian flavor.  This learning algorithm produces at each time $t$,  $\hat\theta^{(t)}_{i,a}$ (estimator of mean reward for participant $i$ under action $a$ at time $t$) along with a measure of uncertainty, say $\hat{\sigma}_{i,a}^{2\,(t)}$ for ith participant. Element 2 is the optimization strategy, also called an action selection strategy.   We are investigating whether it would be useful to use empirical Bayes as part of this second element.
+
+If there is promise, then we will add our empirical Bayes action selection strategy to different learning algorithms (element 1) to further evaluate.}
+
+\sam{first describe the learning algorithm that you are going to try things out with.  This learning algorithm is individual specific.   I suggest to use a Bayesian linear regression.  That is the learning algorithm learns parameters in a linear model for the reward separately for each individual.
+}
+
+\sam{ would you edit below to complete the description of the learning algorithm.  After this then describe how the second element of the RL algorithm, i.e., the empirical bayes action selection strategy would work. Note that the action selection strategy in classical Thompson Sampling would be individual specific--it is usually called "posterior sampling."  However here we will consider an empirical bayes action selection strategy.  This strategy makes working assumptions about the parameters that are estimated by the individual specific learning algorithm. }
+
+The distribution of $\theta^{(t-1)}_{i,a}$ may be denoted as:
+$$\theta^{(t-1)}_{i,a} \sim 
+\mathcal{N}\!\big(\mu_{i,a}^{(t-1)},\, \tau_{i,a}^{2\,(t-1)}\big)$$
+
+At the start of the simulation, a shared prior, which hypothetically reflects pooled data from a previous trial, will be assumed for all $\theta_{i,a}$: $\theta_{\text{prior}}\sim \N(0,1)$. A posterior update is performed recursively after each action-reward pair according to the following procedure:
+
+\begin{enumerate}
+
+\item \textit{Estimate individual-level noise}: 
+If, for a given arm $a$, all participants have $T_{i,a} \leq 1$, the algorithm will use a predetermined guess, $\hat{\sigma}_{a}^{2\,(t)}=1$. If at least one participant has $T_{i,a} > 1$, the algorithm will first estimate $\hat{\sigma}_{i,a}^{2\,(t)}$ for those individuals:
+\[
+\hat{\sigma}_{i,a}^{2\,(t)} \;=\; 
+\frac{\sum_{s=1}^t \mathbf{1}\{\mathcal{A}_i^{(s)} = a\}
+\left( \mathcal{R}_{i,a}^{(s)} - \bar{\mathcal{R}}_{i,a} \right)^2}
+{\left( \sum_{s=1}^t \mathbf{1}\{\mathcal{A}_i^{(s)} = a\} \right) - 1},
+\quad \text{for } i:T_{i,a} > 1
+\]
+Then, those estimates will be averaged to estimate variance for each arm:
+\[
+\hat{\sigma}_{a}^{2\,(t)} =
+\frac{\sum_{i=1}^{N} \mathbf{1}\{T_{i,a}>1\}\,\hat{\sigma}_{i,a}^{2\,(t)}}
+     {\sum_{i=1}^{N} \mathbf{1}\{T_{i,a}>1\}}
+\]
+
+\item \textit{Individual-level posterior update}: Using the Normal-Normal Conjugacy, each participant's hyperparameters will be updated. The posterior mean is a precision-weighted average between the information from observing the participant's action-reward pair at time $t$ and the shared prior based on the population:
+$$\theta^{(t)}_{i,a} \mid \mathcal{R}_{i,a}^{(t)} 
+\;\sim\; \mathcal{N}\!\big(\mu_{i,a}^{(t)}, \, \tau_{i,a}^{2\,(t)}\big)$$
+$$\tau_{i,a}^{2\,(t)} 
+= \left(\frac{1}{\tau_{i,a}^{2\,(t-1)}} + \frac{1}{\hat{\sigma}_{a}^{2\,(t)}}\right)^{-1},
+\quad
+\mu_{i,a}^{(t)} 
+= \tau_{i,a}^{2\,(t)} \left(\frac{\mu_{i,a}^{(t-1)}}{\tau_{i,a}^{2\,(t-1)}} + \frac{\mathcal{R}_{i,a}^{(t)}}{\hat{\sigma}_{a}^{2\,(t)}}\right)$$
+
+\item \textit{Population-level hyperparameter update}: All participants' posterior hyperparameters will be used to determine a new set of shared hyperparameters for the distribution of $\theta_{i,a}$ in the population using inverse-variance weighting for the mean and a method of moments/ML estimator for the variance (Raudenbush \& Bryk, 1985). 
+\[
+\mu_a^{(t)} \;=\; 
+\frac{\displaystyle \sum_{i=1}^N \frac{\mu_{i,a}^{(t)}}{\tau_{i,a}^{2(t)}}}
+     {\displaystyle \sum_{i=1}^N \frac{1}{\tau_{i,a}^{2(t)}}}
+\]
+\[
+\tau_a^{2(t)} \;=\; 
+\frac{1}{N} \sum_{i=1}^N 
+\left[ \left(\mu_{i,a}^{(t)} - \mu_a^{(t)}\right)^2 
++ \tau_{i,a}^{2(t)} \right]
+\]
+
+\item \textit{Action selection using shared policy}: $\mathcal{A}_i^{(t+1)}$ will be determined for each individual using the updated set of shared hyperparameters via Thompson sampling. For each participant, each arm will be sampled once, and the arm with the highest sampled value will be selected. 
+$$\hat{\theta}^{(t)}_{i,a} \sim\; \mathcal{N}\!\big(\mu_{a}^{(t)}, \, \tau_{a}^{2\,(t)}\big)$$
+$$\mathcal A_i^{(t+1)} \;=\; \arg\max_{a} \hat{\theta}_{i,a}^{(t)}$$
+
+\item \textit{Iterative refinement of hyperparameters:} Following the new set of actions, the observed rewards will be used to update the hyperparameters for each individual and then the population, another action will be selected for each individual via Thompson sampling, and so forth. 
+
+\end{enumerate}
+
+\vspace{2ex}
+
+\textsf{\textbf{Iterations}}
+
+\textit{Iteration 01: Baseline.} The simulation will be constructed based on the following conditions: $\{N=100,\; T=50,\; a \in \{0,1\},\; \mu_0=10,\; \tau_0^2=50,\; \mu_1=20,\; \tau_1^2=60,\; \sigma_{i,0}=10,\; \sigma_{i,1}=5\}$. Conditions can be adjusted based on algorithm performance. 
+
+\vspace{1ex}
+
+\textit{Iteration 02: Shared Parameter.} The simulation will be run as described in \textit{Iteration 01}, except all participants will share the same $\theta^{*}_{a}$, rather than each participant's parameter being an independent draw from an underlying Gaussian distribution, i.e. there will only be individual-level noise and not population-level heterogeneity.
+
+\vspace{1ex}
+
+\textit{Iteration 03: Adding Context.} 
+
+\vspace{2ex}
+
+\textsf{\textbf{Evaluation}}
+
+All iterations will be evaluated against a version of the algorithm with identical conditions except there is only one set of hyperparameters being updated with pooled data. (The individual updates will not occur.)
+
+\end{document}

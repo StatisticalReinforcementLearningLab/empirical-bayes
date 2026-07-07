@@ -1,0 +1,694 @@
+    \documentclass{article}
+\usepackage[margin=2cm]{geometry}
+\usepackage{natbib}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{subcaption}
+\usepackage{color}
+\newcommand{\sam}[1]{
+  {\color{blue} [SAM: {#1}]}
+ }
+ \setlist{nosep} % to reduce space in lists
+
+\setlength{\parskip}{0.5em}
+\setlength{\parindent}{0in}
+
+\input{macros}
+
+\def\post{{\texttt{post}}}
+\def\prior{{\texttt{prior}}}
+
+\def\AYA{{\texttt{AYA}}}
+\def\EDGE{{\texttt{GAME}}}
+\def\CARE{{\texttt{CARE}}}
+\def\Dummy{{\texttt{Dummy}}}
+
+\def\Rwd{{\texttt{Rwd}}}
+
+\def\Burden{{\texttt{Burden}}}
+\def\Treat{{\texttt{Treat}}}
+\def\Discount{{\texttt{Dscnt}}}
+
+\def\Drop{{\texttt{Drop}}}
+
+\def\Sleep{{\texttt{Sleep}}}
+\def\Stress{{\texttt{Stress}}}
+\def\Positive{{\texttt{Positive}}}
+\def\Rel{{\texttt{Relatsh}}}
+\def\Mood{{\texttt{Mood}}}
+\def\SqrtStep{{\texttt{SqrtStep}}}
+\def\ADH{{\texttt{ADH}}}
+
+\def\AM{{\texttt{AM}}}
+\def\PM{{\texttt{PM}}}
+
+\title{Thoughts on Primary Analysis for ADAPTS-HCT}
+% \author{Ziping Xu}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+In this document, we discuss the design of online agent for ADAPTS-HCT in terms of its validity for the primary after-study analysis. ADAPTS-HCT offers three types of interventions under different decision frequencies. Our algorithm is a three-agent algorithm, where each agent corresponds to one type of intervention. In this document, we focus on the discussion of one agent (AYA agent) that provides a binary action on a twice-daily basis. In Appendix \ref{sec:flatten}, we discuss how to flatten the three-agent algorithm into a single-agent algorithm.
+
+Our goal is to study a general framework for online agent design, where we allow pooling across participants for certain components in the online agent to accelerate learning, and allow adaptive sampling. (by allowing adaptive sampling, I mean we can do rigorous inference on the collected dataset.) \sam{we should discuss the use of term "sampling" and phrase "adaptive sampling"--I am coming to realize that Kelly and I may have made a mistake by using these terms.  The issue is that the reader connects these terms to a particular area (bandit ad placement, adaptive clinical trials) and then reader does not understand that we are doing something different.} \cite{zhang2022statistical} proposed an all-purpose, general, statistical inference approach for adaptive sampling for longitudinal data with pooling across participants. However, \textit{this all-purpose  approach imposes assumptions on the behavior policies induced by the online agent}. Notable assumptions that may limit the applicability of their approach include
+\begin{itemize}
+    \item \textbf{parametric form}: the behavior policy $\pi_t$ must be parametrized by a finite-dimensional estimator $\hat\beta_t^{(n)}$, which excludes many non-parametric behavior policies (aka, the dimension of $\hat\beta_t^{(n)}$ should not be large compared to $n$);
+% contained in differentiability:    \item \textbf{smoothness}: the behavior policy $\pi_t$ must be Lipschitz continuous in the estimators $\hat\beta_t^{(n)}$;
+    \item \textbf{consistency}: there exists unknown parameters, $\beta_t^{(\infty)}$ for  which $\hat\beta_t^{(n)}$ must be a consistent estimator.  That is the estimators, $\hat\beta_t^{(n)} \xrightarrow{p} \beta_t^{(\infty)}$, as $n \rightarrow \infty$ for all $t$;
+    \item \textbf{differentiability}: the behavior policy $\pi_t$ and the estimating function $\phi_t$ must be differentiable w.r.t. the parameters.
+\end{itemize}
+
+%Real-world online agent designs often involves complex components making it difficult to verify/satisfy the above assumptions. 
+In this document, we propose a \textbf{two-layer online agent design} that allows us to apply the general purpose inference approach developed in \cite{zhang2022statistical}, while allowing for a flexible online agent design. In short, the two-layer online agent design involves a learning algorithm and an optimization algorithm: 
+\begin{itemize}
+    \item \textbf{the learning algorithm}: learns on each participant's own data and outputs estimators for the participant's underlying parameters;
+    \item \textbf{the optimization algorithm}: views the person-specific estimators as person-specific features. The algorithm inputs  these features at each time $t$ along with each participants' state at time $t$, and outputs the sampling probabilities for each participant.
+\end{itemize}
+
+We argue that the learning algorithm can be \textit{flexible}: it may involve non-smooth/non-parametric operations on the observed data. The learned features need not be consistent estimators of person-specific parameters(they are likely only consistent under assumptions that each person is an MDP). The optimization algorithm, on the other hand, will satisfy the assumptions  by the general-purpose inference approach developed in \cite{zhang2022statistical}.
+
+\textbf{Notation list}
+\begin{itemize}
+    \item $\vs_{i, t}, a_{i, t}, r_{i, t}$: the state, action and reward at step $t$ of episode $i$
+    \item $\pi_{i, t}$ the behavior policy at step $t$ of episode $i$
+    \item $\vtheta_{i}$: some true underlying parameter about episode $i$
+    \item $\hat \vtheta_{i, t}$: the prediction of the true underlying parameter from the learning algorithm at step $t$ of episode $i$
+    \item $\hat \vbeta_{i, t}$: the parameter the optimization outputs used as inputs for the behavior policy
+\end{itemize}
+
+\section{Formulation}
+
+We formulate the ADAPTS-HCT as an RL problem with a sequence of episodes $i = 1, \dots, N$. Each episode $i$ starts randomly at time $t_i$. We may think of each episode as a participant (dyad) in our clinical trial, and $t_i$ is the random variable indicating the time when the $i$-th participant is enrolled.
+
+Each episode $i$ consists of a sequence of transitions $(\vs_{i, t}, a_{i, t}, r_{i, t}, \pi_{i, t})_{t=t_i}^{t_i+T_i-1}$, where $\vs_{i, t}$ is the state, $a_{i, t}$ is the action, $\pi_{i, t}$ is the sampling probability, and $r_{i, t}$ is the reward (medication adherence) at time $t$ of episode $i$. In ADAPTS-HCT, each dyad stays for 14 weeks ($T_i = 14 \times 14 = 196$ for all $i$). Here the state space is all the observed variables at the time $t$ that may include \textit{AYA's past medication adherence, relational quality, psychological distress, and positive affect} etc.
+
+In ADAPTS-HCT, we have a binary action space $\gA = \{0, 1\}$ for the AYA agent representing whether a positive psychology message is sent to the AYA at time $t$, and the sampling probability $\pi_{i, t} \in [0, 1]$ is the probability of taking action $a_{i, t} = 1$.
+
+We denote the trajectory of episode $i$ at the time $t$ as $\gH_{t}^{(i)} = \{(\vs_{i, t'}, a_{i, t'}, r_{i, t'}, \pi_{i, t'}) \}_{t'=t_i}^{\min\{t-1, t_i + T_i-1\}} \cup \{\vs_{i, t}\}$.
+
+\section{Two-layer online agent design}
+
+Our online agent consists of a sequence of learning algorithms and one optimization algorithm, denoted by $\gL_i$ and $\gO$ respectively. Here $\gL_i$ is the learning algorithm for episode $i$, which is a mapping from the episode $i$'s own trajectory $\tau_{i, t}$ to a prediction $\hat \vtheta_{i, t}$ about the underlying parameters in which episode $i$ runs. This prediction could represents some marginal statistics about the underlying environments that inform decision making, e.g, each arm's mean reward. 
+% \sam{including current state, $s_{i,t}$ in  $x_{i, t}$ will be confusing to many--I would keep these separate but right now the notation below is confounded so the english description is always slightly off..}). 
+At time $t$, the optimization algorithm $\gO$ takes input the $\{\hat \vtheta_{i,t}\}_{t_i\le t,i\in[N]}$ from all the existing episodes and outputs the sampling probabilities for every ongoing episode.
+
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Ziping/Figures/Picture1.pdf}
+    \caption{Online agent design with learning and optimization algorithms. \ziping{Add $s_{i, t}$ to this plot}}
+    \label{fig:online_agent}
+\end{figure}
+
+% \paragraph{Assumptions about the optimization algorithm.} \ziping{Starting from here I am going back to the batch setting, where $t_i = 1$ for all $i$, because I don't know how to extend the batch setting to the incremetal recruitment setting yet.}
+
+% The behavior policy $\pi_{t}$ is parameterized by $\hat \beta_{t}$, which is obtained by solving the following estimation equation:
+% $$
+%     \mathbf{0} = \E[\phi_t(x_{i, t}, \beta_t^*)], 
+% $$
+% for some measurable function $\phi_t$ of the prediction $x_{i, t}$ and the target parameter $\beta_t^*$. A sepcial case of this framework is when $x_{i, t} = \gH_{t}^{(i)}$, which reduces to the inference approach developed in \cite{zhang2022statistical}.
+
+% \begin{itemize}
+%     \item \textbf{Consistency}: $\hat \beta_t^{(N)} \xrightarrow{p} \beta_t^*$ as $N \rightarrow \infty$.
+%     \begin{itemize}
+%         \item This assumption holds in \cite{zhang2022statistical} because users are i.i.d. across $i$. 
+%     \end{itemize}
+%     \item \textbf{Smoothness}: $\pi_t$ is Lipschitz continuous in $\beta$.
+%     \item \textbf{Differentiability}: $\pi_t$ is differentiable in $\beta$ at $\beta = \beta_t^*$.
+%     \item \textbf{Lipschitz policy estimating function}: $\phi_t$ is Lipschitz continuous in $\beta_t^*$ for all $i$.
+% \end{itemize}
+
+% \section{Warm-up pure-exporation}
+% Look at the $\hat\beta_1$ to make sure it is symmetric.
+
+\section{Examples}
+
+This framework subsumes many existing online learning algorithms.
+
+\subsection{Thompson Sampling with Full Pooling} 
+
+To recover TS with full pooling, set $\hat \vtheta_{i, t} = (\hat \vtheta_{i, a, t})_{a \in \gA}$, where $\hat \vtheta_{i, a, t} = (\mB_{i, a, t}, \vb_{i, a, t})$, and
+$$
+    \mB_{i, a, t} = \sum_{\tau = t_i}^{t-1} \sI\{a_{i, \tau} = a\} \vs_{i, \tau} \vs_{i, \tau}^{\top}, \quad \vb_{i, a, t} = \sum_{\tau = t_i}^{t-1} \sI\{a_{i, \tau} = a\} \vs_{i, \tau} r_{i, \tau}.
+$$
+% Here we denote $x_{i, a, t} = (A_{i, a, t}, b_{i, a, t})$. 
+
+Then we choose the optimization algorithm $\gO$ such that the behavior policy $\pi_{i, t}(a \mid \vs) = \E[\operatorname{softmax}(\mZ \vs)]$ for all $a \in \sA$. Here $\mZ = (\mZ_a)_{a \in \sA} \in \sR^{|\gA| \times d}$ and $\mZ_a \sim \gN(\hat \vmu_{a,t}, \hat \mSigma_{a, t-1})$, with
+$$
+    \hat \vmu_{a, t} = \left(\sum_i \mB_{i, a, t} + \lambda \mI\right)^{-1} \left(\sum_i \mB_{i, a, t} \vb_{i, a, t}\right),
+    \quad \hat \mSigma_{a, t} = \left(\sum_i \mB_{i, a, t} + \lambda \mI\right)^{-1}.
+$$
+
+\subsection{Direct Pooling on the Parameter Space}
+
+We describe a potential algorithm design framework that fits into this framework. 
+% \ziping{EB-MTRL}
+% \ziping{Not sure about the name yet.} \sam{connect to empirical Bayes, "EB-MTRL" or in line with very classical statistics: "Two-Stage RL"--see raudenbush paper in dropbox folder for this language...} \ziping{I like EB-MTRL. Two-Stage might be too general.}  \sam{related work will include horizontal federated RL (HFRL).  The big difference between what we aim to do here and what is done in FL, is that the federated server sends the federated model weights back to RL agents and the RL agents use these federated model weights to update their local model.   Instead our RL agents only use the federated model weights to select actions, not to update their local model. } \ziping{I am against using the word federated RL. It is true that we are doing similar things. But it might confuse people but the motivation here. Also federated RL is a big literature.}
+
+Assume that the environment for each episode $i$ can be described by a random variable $\gE_i$, sampled i.i.d. in the beginning of the episode from the prior distribution $\gE_i \sim \gP$. This is a simple pooling on the parameter space.
+
+
+We go through this framework in its simplest form--equal-weighted pooling.
+
+\paragraph{Learning component.} 
+% \sam{ I suspect that we are pretending that the learning algorithm knows whether the underlying true environment is an MDP or contextual bandit and is using this knowledge.   Do we want to pretend this for this paper?} \ziping{So far all the discussions is about algorithm. The environment can be anything.}
+
+% \sam{following notation with $x_i^*$ is killing me, but I will persevere.  Reviewer might not...} \ziping{I can replace $x_{i, t}$ with $\theta_{i, t}$ to reflect the fact that we are learning some underlying parameters.} 
+The goal of the learning component is to learn the target parameter $\vtheta^*_i$ of episode $i$ that is a function of the underlying environment $\gE_i$, and $\vtheta^*_i$ should concern the desired policy of episode $i$. For example, if the underlying environment for episode $i$ is a stationary contextual bandit problem, $\vtheta^*_i$ is the coefficient for the true reward generating process. 
+% \sam{prior sentence appears to conflate a contextual bandit algorithm with a contextual bandit environment.} 
+In case of RL, $\vtheta^*_i$ is the parameter of the optimal Q value function of episode $i$.
+
+Specifically, for each episode $i$, we are interested in solving the following estimating equation:
+$$
+    \mathbf{0} = \E_{\gE_i}[\vg_t(\vs, a, r; \vtheta^*_i)],
+$$
+for some random function $\vg_t$ measurable w.r.t the sigma-algebra generated by the trajectory up to step $t$ of episode $i$. One may think of the following example for a stationary contextual bandit algorithm: 
+% \sam{are we talking about an environment OR an algorithm?  :)}
+$$
+    \vg_t(\vtheta) = 
+    \left(\begin{array}{c}
+         \sum_{t'=1}^{t}\frac{1_{a_{i, t'} = 1}}{\pi_{i, t'}(1 \mid \vs_{i, t'})}\vs_{i, t'} (r_{i, t'} - \vtheta_{1}^{\top} \vs_{i, t'})  \\
+         \dots \\
+         \sum_{t'=1}^t\frac{1_{a_{i, t'} = |\gA|}}{\pi_{i, t'}(|\gA| \mid \vs_{i, t'})} \vs_{i, t} (r_{i, t'} - \vtheta_{|\gA|}^{\top} \vs_{i, t'})
+    \end{array}\right)
+$$
+
+
+We may also do long-term planning (i.e., RL) in this framework. For example, we can model the value function under a linear MDP model with feature mapping $\vphi$, the estimating equation becomes
+$$
+    \vg_t(\vtheta) = \left( \sum_{t'} \frac{1_{a_{i, t'} = a}}{\pi_{i, t'}(a \mid \vs_{i, t'})}\vphi(\vs_{i, t'}, a) \left(r_{i, t'} + \gamma \argmax_{a' \in \gA} \langle \vphi(\vs_{i, t'}, a'), \vtheta_{a'}\rangle - \vtheta_{a}^{\top} \vphi(\vs_{i, t'}, a)\right) \right)_{a \in \gA}.
+$$
+Here one may think of $\vtheta_i^*$ as the parameter of the optimal Q value function of episode $i$. \ziping{Note that here we can do hard max in the learning component. Might be an advantage.}  
+%\sam{if, by chance, each  participant(AKA, environment) is an MDP and $T_i$ is large then I suspect the overall, average across-participants-regret will be improved?  I don't have a good conjecture but here is a not-so-good conjecture: if we were in this setting then for each $i=1,...,N$ at time $t$ we would have a $Q(s,a;\gH_{t}^{(i)})=Q(s,a;\vtheta_{i,t})$  so we could send these functions to optimization alg.  This would reduce dimensionality if we don't include trait data.} \ziping{I don't quite follow here. When you say, "improved", are you saying improved over individual learning where there is no pooling in any sense? }
+\sam{ Suppose the true underlying $i^{th}$ person is a stationary MDP for each $i=1,...,N$ people.  Suppose $t$ is large so the learning algorithm has learned the true optimal Q function, $Q(s,a;\theta_i^*)$, for each person $i$.  So at time $t$, the learning algorithm outputs $(\hat\theta_{i,t}\approx\theta_i^*,  \Sigma_{i,t}), i=1,...,N$ to the optimization component ($\Sigma_{i,t}$ is learning algorithm's coarse measure of its uncertainty about how close $\hat\theta_{i,t}$ is to $\theta_i^*$, so if $t$ is large, $\Sigma_{i,t}$ is very close to 0).  Then the  optimization component should notice that the variance between the $\hat\theta_i, i=1,...,N$ is way larger than $\Sigma_{i,t}$ and thus will realize that it is best to not pool the $\hat\theta_{i,t}, i=1,...N$ and will essentially select the action  for person $i$ at time $t$ as $\arg\max_a Q_i(s,a;\hat\theta_{i,t})$. }
+
+\sam{As we have discussed we can also consider functional $\hat\theta_{i,t}$.}
+
+\sam{The key demand that is made of the learning algorithm is that at time $t$ it must provide not only $\hat\theta_{i,t}$  but also uncertainly measure $  \Sigma_{i,t}$  for  $ i=1,...,N$.    The reason we need the uncertainty measure $  \Sigma_{i,t}$ is to allow the optimization component to decide how much to pool across $i$. If  $  \Sigma_{i,t}$ is very close to $0$ then there is no reason to pool.   Note that in ideal settings (learning algorithm's model for $Q$ and person is correct) $  \Sigma_{i,t}$ will be on the order of $1/t$.}
+
+
+\paragraph{Optimization component.} The optimization component here can be further decomposed into two layers: the first layer is the aggregation of the evidence from all the episodes, and the second layer is the optimization over the behavior policy.
+
+
+
+
+\textbf{The first layer: aggregation of the evidence.} It tries to improve the posterior prediction of the target parameter $\vtheta^*_i$ of episode $i$ by taking into account the predictions from all the existing episodes. It can be seen as an aggregation of the evidence from all the episodes. For this purpose, we write the behavior policy parameter $\hat \vbeta_{t} = (\hat \vbeta_{i, t})_{i = 1}^N$. Note I have a $\hat \beta_{i, t}$ for each episode $i$ to allow different aggregation for different episodes, in case we need to do a weighted average with varying weights.
+
+A simple aggregation scheme is to take the average of predictions from all the existing episodes:
+$$
+    \hat \vbeta_{i, t} = \frac{1}{\sum_{j = 1}^N 1_{t_j\le t}} \sum_{j = 1}^N \hat \vtheta_{j, t}1_{t_j\le t}.
+$$
+
+\ziping{
+A potential generalization is the average on the function space. Think of $\hat \vtheta_{i, t}(s, a)$ itself being a value function. Then the average over the function space is 
+$$
+    \bar \vbeta_{i, t}(s,a) = \frac{1}{\sum_{j = 1}^N 1_{t_j\le t}} \sum_{j = 1}^N Q(s, a; \hat \vtheta_{j, t})1_{t_j\le t}.
+$$
+If we can generalize Kelly's math to include behavior policy conditioned on functions instead of parameters, we can make this work. We need to use empirical process over function class indexed by $s, a$ with the right covering number argument.
+}  
+% For an MDP, where $\hat \vtheta$ is the parameter of the value function written as $Q(s, a ; \vtheta)$, then 
+
+% \sam{Note that in HFRL, they use aggregation schemes (weighted average of the local model weights --called predictions here-- similar to above}. \sam{what about  $$\hat \beta_{ t}(s,a) = \frac{1}{\sum_{j = 1}^N 1_{t_j\le t}} \sum_{j = 1}^N Q(s,a;x_{j,t})1_{t_j\le t}$$
+% Can we make kelly's math work with this?  would be rather nice....    Or better yet with an Advantage function  $Q(s,a;x_{j,t})-Q(s,a=0;x_{j,t})$.   Or better yet, the $\pi(a|s; x_{j,t})$'s.  }
+
+% \ziping{I want $\beta$ to be a parameter instead of a function so we can apply Kelly's work. A simple average over functions does not necessarily give me a function that can be parametrized by $\beta$.}  \sam{conjecture: we can generalize kelly's work to include $\beta(s,a)$ as long as this function does not belong to too complex a class.--We need to use empirical processes (over function class indexed by $(s,a)$) with the right covering number argument..}
+% Note that here we have the same prediction for all the episodes, which corresponds to the full pooling with equal weights.
+
+The estimation equation for the behavior policy parameter is simply given by
+$$
+    \mathbf{0} = \E\left[ \sum_{j = 1}^N 1_{t_j\le t}\left(\hat \vtheta_{j, t} - \vbeta_{i,t}\right)\right].
+$$
+\ziping{ 
+With our generalization, for each $s,a$
+$$  \mathbf{0} =  \sum_{j = 1}^N \left(Q(s,a;\hat \vtheta_{j,t})-\hat \vbeta_t(s,a)\right)1_{t_j\le t}$$
+This would work very easily if each user-specific $Q$ is assumed to be linear in the $\vtheta_{i,t}$'s, i.e. $Q_i(s,a){:=} \vphi(s,a)^T \vtheta_{i,t}$ for state feature mapping, $\phi(s,a)$.  Then estimating eqn is $$\mathbf{0} =  \sum_{j = 1}^N 1_{t_j\le t}\phi(s,a)^T\left(\hat \vtheta_{j,t}-\vbeta_{i, t}\right)$$  and you get the softmax below.}   
+
+Note that here it is easy to differentiate the objective function w.r.t. $\beta_t$.
+
+\sam{But non-linear $Q$?  We should be able to figure this out...Suppose we used a 2 layer neural net to model Q.  At each time $t$ for each individual $i$ we would have a large $p$ dim vector of estimated weights, $x_{i,t}$.   If $p<< N$ then we could just act as if the user-specific RL was only used to do feature construction resulting in $p$ features. We could play the empirical bayes game as long as we solve the var-cov issue.   However if $p$ is not much less than $N$ then we need to be more thoughtful...}
+
+\ziping{If we are interested in deep model/non-linear model, would it be possible for us to consider Bayesian Neural Network?} \sam{not sure, but worth investigating...}
+
+\textbf{The second layer: optimization over the behavior policy.} It optimizes over the behavior policy using the aggregated evidence $\hat \vbeta_{i,t}$. Here to ensure the differentiability of the behavior policy w.r.t. $\vbeta$, and a Lipschitz condition on the behavior policy w.r.t. $\vbeta$, we use the following form of the behavior policy:
+$$
+    \pi_{t}(a \mid s; \hat \vbeta_{i, t}) = \operatorname{softmax}\left(\hat \vbeta_{i, t}^{\top} \phi(s, \cdot)\right)_a,
+$$
+where $\phi$ is the feature mapping.  \sam{so empirical Bayes produces a  "more intelligent" policy, aka, one which incorporates uncertainty...} \ziping{Yes}
+%Above we  not taking into account person-specific uncertainty, $  \Sigma_{i,t}$.  
+
+
+
+
+
+ 
+% \subsubsection{A More Sophisticated Pooling}
+
+% Here the learning target $x_{i, t}$ is the first two moments of the target parameter, which we denote by $x_{i, t} = (\hat \theta_{i, t}, \hat \Sigma_{i, t})$. Under a Bayesian framework for RL, $\hat \theta_{i, t}$ is the posterior mean of the optimal Q value function parameter, and $\hat \Sigma_{i, t}$ is the posterior covariance matrix of the Q value function parameter \textbf{under some non-informative prior}.
+
+% During the aggregation step, we may do the following:
+% $$
+%     \hat \beta_{i, t} = \left(\hat \Sigma_{i, t}^{-1} + \bar \Sigma_{-i, t}^{-1} + \lambda I\right)^{-1}\left(\hat \Sigma_{i, t}^{-1} \hat \theta_{i, t} + \bar \Sigma_{-i, t}^{-1} \bar \theta_{-i, t}\right),
+% $$
+% where
+% $$
+%     \bar \theta_{-i, t} =  \left(\sum_{j \neq i} \hat \Sigma_{j, t}^{-1}\right)^{-1} \left(\sum_{j \neq i} \hat \Sigma_{j, t}^{-1} \hat \theta_{j, t}\right), \quad \quad  \bar \Sigma_{-i, t} = \frac{1}{N-1} \sum_{j \neq i} (\hat \theta_{j, t} - \bar\theta_{-i, t})^{\otimes 2} - \frac{1}{N-1} \left(\sum_{j \neq i} \hat \Sigma_{j, t}^{-1}\right)^{-1}.
+%     %+ \left(\sum_{j \neq i} \hat \Sigma_{j, t}^{-1}\right)^{-1}.
+% $$
+% Here $\nu^{\otimes 2} := \nu \otimes \nu^{\top}$ denotes the outer product of $\nu$ with itself.
+
+% Note that here $\bar\theta_{-i, t}$ and $\bar\Sigma_{-i, t}$ can be seen as the \textbf{empirical Bayes estimate of the prior mean and covariance matrix} of the target parameter of episode $i$, and $\hat \beta_{i, t}$ is the \textbf{posterior mean} of the target parameter of episode $i$ under the empirical Bayes prior.
+
+% The behavior policy can be the same softmax policy as in the equal-weighted pooling case.
+
+
+% \section{Inference}
+% This two-layer online agent design allows us to think about after-study inference in a principled way. Here we start with the setting where $t_i = 1$ for all $i$. This is the batch setting where each user has longitudinal data.
+
+% We want to study the induced policies $\pi_{i, t}$. Assume that $\pi_{i, t}$ is parameterized by $\beta_{i, t}$, where we need that $\beta_{i, t}$ is a function of $\{\tau_{i, t}^N\} \cup \{x_{i, t}\}_{i = 1}^N$, i.e., the predictions from the learning algorithms are used as features for the optimization algorithm, and the behavior policy of user $i$ depends on the trajectories of other users $j \neq i$ only through the predictions $x_{j, t}$.
+
+% To make the dependence of $N$ explicit, we write $\beta_{i, t} = \beta_{i, t}^{(N)}$. Let us consider the full pooling case, where $\pi_{1, t} = \dots = \pi_{N, t}$, with a single policy parameter $\beta_{t}^{(N)}$. We will need 
+% $$
+%     \beta_{t}^{(N)} \xrightarrow{p} \beta_{t}^*, \text{ as } N \rightarrow \infty.
+% $$
+
+
+\section{Empirical Bayes}
+
+\paragraph{Empirical Bayes in the Sequential Decision Making Setting}
+
+Suppose that each participant in our study can be represented as parameter $\vtheta^*_{i}$ for $i = 1, \dots, n$. The observations we have generated sequentially through $(\vs_{i, t+1}, r_{i, t+1}) \sim P(\cdot \mid \vs_{i, t}, a_{i, t} ; \vtheta^*_i)$. We call the dataset for participant $i$ up to time $t$, $\gD_{i, t}$. Consider an individual learning algorithm $\gL_{i, t}$ inputting dataset $\gD_{i, t}$ and outputting an estimator $\hat \vtheta_i$ of the target parameter $\vtheta_i^*$. In the current stage, we keep the learning algorithm generic, but making a naive approximation by thinking $\hat \vtheta_{i, t} \mid \gD_{i, t} \sim \gN(\vtheta^*_i, \hat \mSigma_{i, t})$, where $\hat \mSigma_{i, t}$ is a uncertainty measure of the learning algorithm. To control the complexity of the model, we consider only the diagonal covariance matrix.
+
+% \sam{Could consider a diagonal $\Sigma$}
+
+The idea of the Empirical Bayes is about assuming the target parameters $\vtheta_{i}^*$ being sampled independently from a prior $\gN(\vmu_0, \mSigma_0)$ for $i = 1, \dots, N$. Here $X_{i}$ is the user baseline variable (age, gender, disease severity, etc.). 
+In the classic writings of empirical Bayes \citep{efron1973stein}, $\vmu_0$ is often 0, but it could be set to another unknown and non-zero vector. 
+% \ziping{$\mu_0$ both non-zero and unknown.} 
+Typically, $\mSigma_0$ is unknown. The empirical procedure comes into the play when we estimate $\mB_0$ and $\mSigma_0$ from the data $\{\gD_{i, t}\}_{i = 1}^n$, say through maximizing the marginal likelihood. 
+
+Under the naive Gaussian approximation above, MLE has no closed form. The following estimator coincidences with MLE when $\hat \mSigma_{1, t} = \dots = \hat \mSigma_{n, t}$:
+% and $\mB_0 X_i \equiv 0$:
+\[
+    \hat \mSigma_{0, t} = \frac{1}{n} \sum_{i=1}^n \hat \vtheta_{i, t} \hat \vtheta_{i, t}^{\top} - \frac{1}{n} \sum_{i=1}^n \hat \mSigma_{i, t}.
+\]
+
+% \ziping{Loss function, and then optimize}
+
+\ziping{We worry about having too many parameters in $\mSigma_{0}$. When we do the testbed, we not only want to measure average rewards. But we are also interested in the particular confidence. See whether we can implement Kelly's approach.}
+
+Under the empirical Bayes, we may plug in the estimator $\hat \mSigma_{0, t}$ to get a posterior for $\vtheta_{i}$:
+\[
+    \vtheta_{i, t}^{\post} = \left(\hat \mSigma_{0, t}^{-1} + \hat \mSigma_{i, t}^{-1}\right)^{-1} \hat \mSigma_{i, t}^{-1} \hat \vtheta_{i, t},
+\]
+and posterior variance
+\[
+    \mSigma_{i, t}^{\post} = \left(\hat \mSigma_{0, t}^{-1} + \hat \mSigma_{i, t}^{-1}\right)^{-1}.
+\]
+\ziping{Connect to feel good.}
+When the underlying environment is a contextual bandit, we can think of $\vtheta_i^* = (\vtheta_{i, 1}^*, \dots, \vtheta_{i, K}^*)$, the coefficient for $K$ arms. Then we can run Thompson sampling using the posterior mean and variance $\vtheta_{i, t}^{\post}$, $\mSigma_{i, t}^{\post}$.
+
+% \paragraph{Empirical Bayes Optimization component.} 
+% \sam{ I realize that section 4 is about empirical bayes, but I wanted some text that is not conflated with contextual bandit learning alg, thus the following.    }
+
+%  At each time $t$ optimization component puts a Gaussian distribution on the $\hat\theta_{i,t}, i=1,...,N$.  The ${Data}_t$ at time $t$ is ${Data}_t=\{\hat\theta_{i,t}, i=1,...,N\}$.  
+% The optimization component assumes that 
+% $\hat\theta_{i,t}$ are independently distributed  $ N(\theta_{i,t},\Sigma_{i,t}), i=1,...N$.  
+
+% This component sets the prior at time $t$ as $\theta_{i,t}$ as i.i.d. $\sim N(\theta_{0,t}, \Sigma_{0,t})$ .  Usually $\theta_{0,t}=0$ but it could be set to another known vector.   $\Sigma_{0,t}$ is unknown (see below). 
+
+% Now for each person $i$, the optimization component calculates the posterior distribution of   $\theta_{i,t}$ given ${Data}_t$ and $\Sigma_{0,t} $.  Note that this posterior is marginalized over the 
+% $\theta_{i,t}, i=1,...N$.  The result is a closed form weighted average in this gaussian-gaussian setting.   Next to make this an ``empirical" Bayes procedure, the optimization component estimates $\Sigma_{0,t} $ by maximizing the marginal likelihood.  That is, calculate the marginal density of   ${Data}_t$ given $\theta_{0,t}, \Sigma_{0,t}$.  The only unknown in this density is $\Sigma_{0,t}$.  The marginal log likelihood for $\Sigma_{0,t}$ is the log of this density.   
+% The optimization component estimates  $\Sigma_{0,t}$ by maximizing this marginal log likelihood.   This results in $\hat\Sigma_{0,t}$. $\hat\Sigma_{0,t}$ is plugged into the posterior distribution of   $\theta_{i,t}$ given ${Data}_t$ and $\Sigma_{0,t} $ and this ``estimated" posterior is use to create action-selection probabilities by the optimization algorithm, resulting is formulae similar to the text in Section 4 but without restricting the learning algorithm to be a contextual bandit.  
+
+\subsection{Modeling Baseline Variables}
+
+In clinical trial studies, we often have collect baseline variables about participants like  age, gender, disease severity etc. Modeling these variables could significantly address the heterogeneity across participants and optimize performance.
+
+
+To model the heterogeneity, we assume that the target parameters $\vtheta_i^* \sim \gN(\mB_0 X_i, \mSigma_0)$, where $X_i$ is the baseline variable vector, and $\mB_0$ is the unknown coefficient for the baseline effect. 
+% \sam{All of above can be extended to $\theta_{i}^*$ are independently distributed  $ N(B_{0} X_i,\Sigma_{0}), i=1,...N$ where $X_i$ are baseline variables (age, gender,disease severity, etc.).}
+
+% \ziping{Write out the solution for this particular model}
+
+% \sam{I am not sure we are following the above classical empirical Bayes ``cookbook" (this cookbook is outlined above)  in section 4 below.  }
+
+% \sam{not sure why we want to restrict to learning algorithms that are contextual bandits.  --soo I added text above...}  We consider a principled framework here. Let us assume that the true underlying environment of episode $i$ is contextual bandit with true coefficients $\vtheta_{i, a}$: 
+
+\subsection{Learning Algorithm for Linear MDP}
+% \begin{equation}
+%     r_{i, t} = \vtheta_{i, a_{i, t}}^{\top} \vs_{i, t} + \epsilon_{i, t},
+% \end{equation}
+% where $\epsilon_{i, t} \sim \gN(0, \sigma^2)$ is i.i.d Gaussian noise. We further assume that $\{\vs_{i, t}\}_{t \geq 1, i \geq 1}$ is also i.i.d.
+
+% We assume that $\vtheta_{i, a} \sim \gN(\vmu_{a}, \mSigma_{a})$ i.i.d for each $a \in \gA$ and $i \geq 1$, where $\vmu_{a}$ is the prior mean and $\mSigma_{a}$ is the prior variance. The idea of empirical Bayes is that we may use the data from the other episodes to learn about $(\vmu_{a}, \mSigma_{a})$.
+
+% \par\noindent\rule{\textwidth}{0.4pt}
+
+At the each time step $t$, the \textbf{learning algorithm} is 
+\begin{equation}
+    \hat \vtheta_{i, a, t} = \left(\frac{1}{\sigma^2}\sum_{\tau = 1}^{t-1}1_{\{a_{i, \tau} = a\}}\vs_{i, \tau} \vs_{i, \tau}^{\top} + \Lambda_{0, i}\right)^{-1}\left(\frac{1}{\sigma^2} \sum_{\tau = 1}^{t-1} 1_{\{a_{i, \tau} = a\}} \vs_{i, \tau} y_{i,\tau} \right), \label{equ:mu_iat}
+\end{equation}
+and 
+\begin{equation}
+    \hat \mSigma_{i, a, t} = \left(\frac{1}{\sigma^2}\sum_{\tau = 1}^{t-1}1_{\{a_{i, \tau} = a\}}\vs_{i, \tau} \vs_{i, \tau}^{\top} + \Lambda_{0, i}\right)^{-1} \label{equ:sigma_iat}
+\end{equation}
+where $\Lambda_{0, i}$ is a person-specific prior assumed to be known, and 
+\[
+    y_{i, \tau} = r_{i, \tau} + \gamma \max_a Q(s_{i, \tau+1}, a; \vtheta_{i, a, t-1}).
+\]
+
+Then the learning algorithm's prediction is $\hat \vtheta_{i, t} = (\hat \vtheta_{i, a, t}, \hat \mSigma_{i, a, t})_{a \in \gA}$. 
+
+\ziping{List the number of algorithm and testbed variants.}
+
+\subsection{After-study Analysis}
+
+% \sam{confusing as $\lambda$ in above formulae should be connected to a person-specific prior. }
+
+% \par\noindent\rule{\textwidth}{0.4pt}
+
+% The optimization algorithm first aggregates the information from each trajectory to estimate the true $\vmu_a$ and $\mSigma_a$. The prediction is given by
+% \begin{equation}
+%     \hat \vmu_{a, t} = \left(\sum_{i = 1}^N \hat \mSigma_{i, a, t}^{-1}\right)^{-1} \sum_{i = 1}^N \hat \mSigma_{i, a, t}^{-1} \hat \vmu_{i,a,t},
+% \end{equation}
+% and 
+% \begin{equation}
+%     \hat \mSigma_{a, t} \leftarrow \frac{1}{N} \sum_{i = 1}^N  (\hat\vmu_{a,t} - \hat \vmu_{i,a,t})^{\otimes 2} - \frac{1}{N} \sum_{i = 1}^N \hat \mSigma_{i, a, t}
+% \end{equation}
+
+% We further run Bayesian regression on episode $i$'s own data to get the posterior of $\theta_{i, a}$ given our predicted prior $(\hat \vmu_{a, t}, \hat \mSigma_{a, t})$ and obtain:
+% \begin{equation}
+%     \hat \vtheta^{\post}_{i, a, t} = \left(\bar \mSigma_{i,t}^{-1} + \hat \mSigma_{a,t}^{-1}\right)^{-1}\left(\bar \mSigma_{i,t}^{-1} \hat\vmu_{i,a,t} + \hat \mSigma_{a, t}^{-1} \hat \vmu_{a, t} \right), \quad \hat \mSigma^{\post}_{i, a, t} = \left(\bar \mSigma_{i,t}^{-1} + \hat \mSigma_{a,t}^{-1}\right)^{-1}
+% \end{equation}
+% where 
+% \begin{equation}
+%     \bar \mSigma_{i,t}^{-1} = \frac{1}{\sigma^2}\sum_{\tau = 1}^{t-1}1_{\{a_{i, \tau} = a\}}\vs_{i, \tau} \vs_{i, \tau}^{\top}
+% \end{equation}
+
+% These will be the parameter $\hat \vbeta_{i, t} = \left(\hat \vtheta^{\post}_{i, a, t}, \hat \mSigma_{i, a, t}^{\post}\right)_{a}$ for the behavior policy for episode $i$. From here we can use Thompson sampling with the posterior is Gaussian with parameters $\hat \vbeta_{i, t}$ and a smooth allocation function. Specifically, sample 
+% \begin{equation}
+%     \tilde{\vtheta}_{i, a, t} \sim \gN(\hat \vtheta^{\post}_{i, a, t}, \hat \mSigma_{i, a, t}^{\post})
+% \end{equation}
+% and sample action $a_{i, t}$ from 
+% $
+%     \softmax((\tilde{\vtheta}_{i, a, t}^{\top} \vs_{i, t})).
+% $
+% The behavior policy is given by
+% \begin{equation}
+%     \pi_{i,t}(a \mid \vs_{i, t}) = \Pr\left(a_{i, t} = a \mid \hat \vbeta_{i, t}, \vs_{i, t}\right).
+% \end{equation}
+
+% \par\noindent\rule{\textwidth}{0.4pt}
+
+\subsection{Some Justification}
+
+\sam{Is this math below being used to overcome the naive empirical bayes assumption --that is, that the assumption that the individual specific estimators from the learning algorithm are  independent across people.  We know this is untrue after the first update due to use of pooled policy....}  There should not be much information loss from (\ref{equ:mu_iat}) and (\ref{equ:sigma_iat}). Some evidence is that I can reconstruct MLE from these information:
+
+Here is a proof in the iid setting.. Let $\mX_i$ be the design matrix of episode $i$ and $\vb_i = \mX_i^{\top} y_i$, where $\vy_i = (r_{i, 1}, \dots, r_{i, T_i})^{\top}$. The joint log-likelihood over different episodes is 
+
+\begin{equation}
+    \ell(\vmu, \mSigma)=-\frac{1}{2} \sum_i\left\{\log \operatorname{det}\left(\sigma^2 I_{T_i}+\mX_i \mSigma \mX_i^{\top}\right)+\left(\vy_i-\mX_i \vmu\right)^{\top}\left(\sigma^2 I_{T_i}+\mX_i \mSigma \mX_i^{\top}\right)^{-1}\left(\vy_i-\mX_i \mu\right)\right\}.
+\end{equation}
+
+Apply the matrix determinant lemma and Woodbury identity:
+
+$$
+\begin{gathered}
+\operatorname{det}\left(\sigma^2 I_{T_i}+\mX_i \mSigma \mX_i^{\top}\right)=\left(\sigma^2\right)^{T_i} \operatorname{det}\left(I_p+\frac{1}{\sigma^2} \mSigma \mX_i^{\top} \mX_i\right), \\
+\left(\sigma^2 I_{T_i}+\mX_i \mSigma \mX_i^{\top}\right)^{-1}=\frac{1}{\sigma^2} I_{T_i}-\frac{1}{\sigma^4} \mX_i\left(\mSigma^{-1}+\frac{1}{\sigma^2} \mX_i^{\top} \mX_i\right)^{-1} \mX_i^{\top} .
+\end{gathered}
+$$
+
+
+Let $\vb_i=\mX_i^{\top} \vy_i$. After substitution and expanding the quadratic form, every term that depends on $\vmu$ or $\mSigma$ can be expressed using only $\mSigma_i = \mX_i^{\top}\mX_i$ and $\vb_i$ (the term $\frac{1}{\sigma^2} \vy_i^{\top} \vy_i$ drops because it is constant in $\vmu, \mSigma$ ). 
+
+\par\noindent\rule{\textwidth}{0.4pt}
+
+\begin{prop}[Consistency]
+    Under Regularity Assumptions,
+    $\hat \vmu_{a, t} \rightarrow \vmu_{a}$ and $\hat \mSigma_{a, t} \rightarrow \mSigma_{a}$ as $N \rightarrow \infty$.
+\end{prop}
+
+\begin{proof}
+    For simplicity, let us assume that there is no overlap in episodes, and $t$ is the end of an episode. That is episode $i+1$ always starts after episode $i$ has ended. \ziping{Should change to the setting with arbitrary overlapping. The notation will be a lot more complex. I will have to group $i$'s with the same $t$, and define the filtration separately.}
+    
+    We write 
+    \begin{align}
+        \hat \vmu_{i, a, t} = \hat{\vmu}_{i, a, t}=\vtheta_{i, a}+\frac{1}{\sigma^2}\hat\mSigma_{i, a, t} \vb_{i,a,t},
+    \end{align}
+    where
+    $$
+        \vb_{i,a,t} = \sum_{\tau=1}^{t-1} 1_{\left\{a_{i, \tau}=a\right\}} \vs_{i, \tau} \epsilon_{i, \tau}
+    $$
+
+    Here $\{b_{i, a, t}\}_{i \geq 1}$ is a martingale sequence w.r.t filtration $\gF_i = \sigma(\{\gH_{j}\}_{j \geq 1})$.
+\paragraph{Step 1: decomposition for \(\hat\vmu_{a,t}\).}
+    We have that 
+\begin{align}
+        \hat \vmu_{a, t} 
+        &= \left(\sum_{i = 1}^N \hat \mSigma_{i, a, t}^{-1}\right)^{-1} \sum_{i = 1}^N \hat \mSigma_{i, a, t}^{-1} \hat \vmu_{i,a,t}\\
+        &= \left(\sum_{i = 1}^N \hat \mSigma_{i, a, t}^{-1}\right)^{-1} \sum_{i = 1}^N \hat \mSigma_{i, a, t}^{-1} (\vtheta_{i, a} +  \hat\mSigma_{i, a, t} \vb_{i, a, t}/\sigma^2) \\
+        &= \left(\sum_{i = 1}^N \hat \mSigma_{i, a, t}^{-1}\right)^{-1} \left(\sum_{i = 1}^N \hat \mSigma_{i, a, t}^{-1} \vtheta_{i, a} \right) + \left(\sum_{i = 1}^N \hat \mSigma_{i, a, t}^{-1}\right)^{-1} \left(\sum_{i = 1}^N \vb_{i, a, t} / \sigma^2 \right) \\
+        &= \gO\left(\frac{1}{N}\right)
+\end{align}
+
+The last equality is based on Azuma-Hoeffding's inequality (both term scales with $1/\sqrt{N}$).
+
+
+\paragraph{Step 2: decomposition for \(\hat\mSigma_{a,t}\).}
+Recall
+\[
+\hat\mSigma_{a,t}
+=\frac{1}{N}\sum_{i=1}^N(\hat\vmu_{i,a,t}-\hat\vmu_{a,t})^{\otimes 2}
+-\frac{1}{N}\sum_{i=1}^N\hat\mSigma_{i,a,t}.
+\]
+Write
+\(\hat\vmu_{i,a,t}-\hat\vmu_{a,t} = (\vtheta_{i,a}-\vmu_a) + \Xi_{i,a,t}\),
+where
+\[
+\Xi_{i,a,t}
+:= \frac{1}{\sigma^2} \hat \mSigma_{i, a, t} \vb_{i, a, t} - (\hat\vmu_{a,t}-\vmu_a).
+\]
+Then
+\begin{equation}\label{eq:Sigma-split}
+\frac{1}{N}\sum_{i=1}^N(\hat\vmu_{i,a,t}-\hat\vmu_{a,t})^{\otimes 2}
+=\underbrace{\frac{1}{N}\sum_{i=1}^N(\vtheta_{i,a}-\vmu_a)^{\otimes 2}}_{T_1}
++\underbrace{\frac{2}{N}\sum_{i=1}^N(\vtheta_{i,a}-\vmu_a)\Xi_{i,a,t}^\top}_{T_2}
++\underbrace{\frac{1}{N}\sum_{i=1}^N\Xi_{i,a,t}\Xi_{i,a,t}^\top}_{T_3}.
+\end{equation}
+
+\ziping{Need to analyze all three terms. They should all be $\gO_p(1/\sqrt{N})$..}
+\end{proof}
+    
+
+We further need some results on the optimality results. Is the above estimator of the prior optimal? We should be able to show a minimax lower bound.
+
+% Following the Bayesian multi-task RL framework proposed in \cite{lazaric2010bayesian}, we consider the Q-value function for each user $i$ parameterized by a random variable $\vtheta^*_{i, t}$, sampled i.i.d. in the beginning of the episode from the prior distribution $\vtheta_{i, t}^* \sim \gN(\nu, \mSigma)$.
+
+% \paragraph{Learning component:} fitted Q iteration with ridge regression loss. We run fitted Q iteration for each dyad $i$ at each time $t$ independently using their own dataset $\gH_{i, t}$.
+
+
+% \begin{algorithm}[H]
+%     \caption{Fitted Q iteration with ridge regression loss}
+%         \begin{algorithmic}[1]
+%             \State{Hyperparameters:} discount factor $\gamma \in \sR$, regularization parameter $\lambda \in \sR$, feature mapping $\phi: \gS \times \gA \mapsto \sR^d$, noise level $\sigma^2 \in \sR$
+%             \State{Input:} previous dataset for each dyad $i$ at time $t$, $\gH_{i, t} = (s_{i, \tau}, a_{i, \tau}, r_{i, \tau})_{\tau = t_i}^{t-1} \cup \{s_{i, t}\}$, previous parameter $\vmu_{i, t-1} \in \sR^{d}$
+%             \State Generate regression matrix and vector
+%             $$
+%                 \rmX_{i, t} \leftarrow\left[\begin{array}{c}
+%                 \phi\left(s_{i, t_i}, a_{i, t_i}\right) \\
+%                 \vdots \\
+%                 \phi\left(s_{i, t-1}, a_{i, t-1}\right)
+%                 \end{array}\right] \quad \rvy_{i, t} \leftarrow\left[\begin{array}{c}
+%                 r_{i, t_i}+\gamma \max _{\alpha \in \mathcal{A}} \langle \phi(s_{i, t_i+1}, \alpha), \vmu_{i, t-1} \rangle \\
+%                 \vdots \\
+%                 r_{i, t-1}+\gamma \max _{\alpha \in \mathcal{A}}\langle \phi(s_{i, t}, \alpha), \vmu_{i, t-1} \rangle
+%                 \end{array}\right]
+%             $$
+%             \State Estimate value function
+%             $$
+%                 \vmu_{i, t} \leftarrow \left(\frac{1}{\sigma^2} \rmX_{i, t}^{\top} \rmX_{i, t}+\lambda I\right)^{-1} \rmX_{i, t}^{\top} \rvy_{i, t} \quad \mathbf{\Sigma}_{i, t} \leftarrow\left(\frac{1}{\sigma^2} \rmX_{i, t}^{\top} \rmX_{i, t}+\lambda I\right)^{-1}
+%             $$
+%             \State \textbf{Output:} $\hat \vtheta_{i, t} = (\vmu_{i, t}, \mathbf{\Sigma}_{i, t})$
+%             % \State Choose action $A_t = \argmax_{\alpha} \langle \phi(s_{t}, \alpha), \theta_{t} \rangle$
+%         \end{algorithmic}
+%         \label{alg:base}
+%     \end{algorithm}
+
+%     The above algorithm outputs an approximate posterior mean $\vmu_{i, t}$ and covariance matrix $\mathbf{\Sigma}_{i, t}$ of the target parameter of episode $i$ at time $t$, which is the true parameter of Q-value function of user $i$.
+
+%     \paragraph{Optimization component:} The optimization component has three steps: 
+%     \begin{enumerate}
+%         \item the first step is the aggregation of $x_{i, t}$ from all dyads $i$ to form an empirical Bayes estimate of the prior distribution of the target parameter;
+%         \item the second step is to form a posterior distribution of the target parameter for each dyad $i$;
+%         \item the third step is to optimize over the behavior policy using the aggregated evidence.
+%     \end{enumerate}
+
+%     \begin{algorithm}[H]
+%         \caption{Empirical Bayes aggregation}
+%         \begin{algorithmic}[1]
+%             \State{Input:} $x_{i, t} = (\theta_{i, t}, \mathbf{\Sigma}_{i, t})$ for all $i = 1, \dots, N$ at time $t$, regularization parameter $\lambda_0 \in \sR$
+%             \State Compute the empirical Bayes estimate of the prior \sam{this is posterior not prior, this  issue is connected to the fact that we are describing this aggregation from an algorithmic viewpoint not an empirical bayes viewpoint...} distribution of the target parameter
+%             $$
+%                 \bar \theta_t \leftarrow \left(\sum_{i = 1}^N \mathbf{\Sigma}_{i, t}^{-1}\right)^{-1} \sum_{i = 1}^N \mathbf{\Sigma}_{i, t}^{-1} \theta_{i, t} \quad \bar{\mathbf{\Sigma}}_t \leftarrow \frac{1}{N} \sum_{i = 1}^N  (\theta_{i, t} - \bar \theta_t)^{\otimes 2} + \lambda_0 I
+%             $$
+%         \end{algorithmic}
+%         \label{alg:prior}
+%     \end{algorithm}
+
+%     The above algorithm outputs the empirical Bayes estimate of the prior distribution of the target parameter $\bar \theta_t$ and $\bar{\mathbf{\Sigma}}_t$.
+
+%     \begin{algorithm}[H]
+%         \caption{Empirical Bayes posterior}
+%         \begin{algorithmic}[1]
+%             \State{Hyperparameters:} prior weight $\omega \in (0, 1)$
+%             \State{Input:} $x_{i, t} = (\theta_{i, t}, \mathbf{\Sigma}_{i, t})$ at time $t$, empirical Bayes estimate of the prior distribution $\bar \theta_t$ and $\bar{\mathbf{\Sigma}}_t$
+%             \State Compute the posterior distribution of the target parameter for each dyad $i$
+%             $$
+%                 \theta_{i, t}^{\text{post}} \leftarrow (\mathbf{\Sigma}_{i, t}^{-1} + \omega \bar{\mathbf{\Sigma}}_t^{-1})^{-1} \left(\mathbf{\Sigma}_{i, t}^{-1} \theta_{i, t} + \omega \bar{\mathbf{\Sigma}}_t^{-1} \bar \theta_t \right)
+%             $$
+%         \end{algorithmic}
+%         \label{alg:posterior}
+%     \end{algorithm}
+
+%     The above algorithm outputs the posterior mean $\theta_{i, t}^{\text{post}}$ of the target parameter of episode $i$ at time $t$.  \sam{also output posterior variance-covariance..}
+
+%     \paragraph{Behavior policy:} The behavior policy is a softmax policy $\pi_{i, t} = \operatorname{softmax}( \alpha \langle \theta_{i, t}^{\text{post}}, \phi(s_{i, t}, \cdot) \rangle)$ with parameter $\theta_{i, t}^{\text{post}}$. Here $\alpha \in \sR$ is the temperature parameter.  \sam{we want to be more "intelligent" about exploration and incorporate posterior covariance into behavior policy. Can use normal distribution instead of logistic (as in soft max) with allocation function  and applied to posterior standardized effect (e.g gaussian posterior sampling with smooth allocation function).   }
+
+% \subsection{Connection to \cite{lazaric2010bayesian}}
+
+% \cite{lazaric2010bayesian} considers an EM algorithm for the same problem. The E-step is given by solving the following equation:
+% $$
+%     \theta_{i, t}^{\text{post}} = \Sigma_{i, t}^{-1} \left(\theta_{i, t} + \bar \Sigma_t^{-1} \bar \theta_t\right)^{-1}.
+% $$
+
+
+
+% \subsection{Experiment Results}
+
+% We run the proposed approach with hyperparameters $\sigma = 0.1$, $\lambda = 5$, $\lambda_0 = 0.01$, $\omega = 5$, and $\alpha = 10$ on the two testbed variants. We compare the proposed approach with the RLSVI Infinite Horizon (pool and not pool) and Bandit with pooling. Their hyperparameters are tuned for testbed variant 1.
+
+% \begin{figure}[H]
+%     \centering
+%     \begin{subfigure}[b]{0.45\textwidth}
+%         \includegraphics[width = 0.97\textwidth]{Ziping/Figures/env1.pdf}
+%         \caption{Testbed variant 1}
+%     \end{subfigure}
+%     \begin{subfigure}[b]{0.45\textwidth}
+%         \includegraphics[width = 0.97\textwidth]{Ziping/Figures/env2.pdf}
+%         \caption{Testbed variant 2}
+%     \end{subfigure}
+%     \caption{Experiment results.}
+%     \label{fig:experiment_results}
+% \end{figure}
+
+% \subsection{Discussions}
+
+% The proposed empirical Bayes approach is an flexible pooling scheme that assigns the prior mean a weight inversely proportional to the heterogeneity (variance) of the target parameter.
+
+
+\section{Estimating Equation for Primary Analysis in ADAPTS-HCT}
+
+\subsection{Medication adherence.} \sam{Would prefer one estimating equation for all.. need to think on this--should be a causal excursion effect.  This is VERY interesting!  Another approach is to prespecify the primary analysis to only concern AYA intervention but include other intervention indicators as part of state in this analysis...  I think this is what you are doing below in AYA intervention..} We are interested in the treatment effects of three interventions onto medication adherence denoted by $\ADH_t$. We first consider the individual effect of each intervention. 
+
+Here we use feature construction $\phi^{\AYA}(S_t)$, $\phi^{\CARE}(S_d)$, and $\phi^{\EDGE}(S_w)$ to denote the features mapping for the three interventions respectively. These features are included to reduce the noise in estimating treatment effects. Here $S_t$ is the all the observed state variables up to time $t$.
+
+\paragraph{AYA intervention onto medication adherence.}
+
+\sam{discuss collinearity issue...}
+\begin{align*}
+    \E\left[\left(\ADH_t - \phi^{\AYA}(S_t)^{\top} \theta^{\AYA} - \pi_{t}^{\AYA} - (A_t^{\AYA} - \pi_{t}^{\AYA}) \tau^{\AYA} \right) \begin{bmatrix}  \phi^{\AYA}(S_t) \\ \pi_{t}^{\AYA} \\ A_t^{\AYA}-\pi_{t}^{\AYA} \end{bmatrix} \right] = 0.
+\end{align*}
+
+\paragraph{Care-partner intervention onto medication adherence.} This only happens at the morning decision time in a day. We use day index $d$ to denote the day. Recall that $t(d)$ is the time index of the morning decision time in day $d$.
+\begin{align*}
+    \E\left[\left(\ADH_{t(d)} + \ADH_{t(d)+1} - \phi^{\CARE}S_d^{\top} \theta^{\CARE} - \pi_{d}^{\CARE} - (A_d^{\CARE} - \pi_{d}^{\CARE}) \tau^{\CARE} \right) \begin{bmatrix}  \phi^{\CARE}(S_d) \\ \pi_{d}^{\CARE} \\ A_d^{\CARE}-\pi_{d}^{\CARE} \end{bmatrix} \right] = 0.
+\end{align*}
+
+This expectation is taken for $A_{t(d)}^{\AYA}$ and $A_{t(d)+1}^{\AYA}$ chosen by some converged policy $\pi^{\AYA} = (\pi_{1}^{\AYA}, \dots, \pi_{T}^{\AYA})$ for $T = 14 \times 14$.
+
+\paragraph{Game intervention onto medication adherence.} This only happens at the Sunday evening in a week. We use week index $w$ to denote the following week. Recall that $t(w)$ is the time index of the Monday morning decision time in week $w$.
+\begin{align*}
+    \E\left[\left( \sum_{t = t(w)}^{t(w)+13} \ADH_t - \phi^{\EDGE}S_w^{\top} \theta^{\EDGE} - \pi_{w}^{\EDGE} - (A_w^{\EDGE} - \pi_{w}^{\EDGE}) \tau^{\EDGE} \right) \begin{bmatrix}  \phi^{\EDGE}(S_w) \\ \pi_{w}^{\EDGE} \\ A_w^{\EDGE}-\pi_{w}^{\EDGE} \end{bmatrix} \right] = 0.
+\end{align*}
+
+\subsection{Psychological distress and positive affect.}
+
+We denote by $\Stress_d$ and $\Positive_d$ the psychological distress and positive affect measured at the evening decision time in day $d$.
+
+\paragraph{AYA intervention onto AYA psychological distress and positive affect.}
+
+\begin{align*}
+    \E\left[\left(\Stress_d^{\AYA} - \phi^{\AYA}(S_{t(d)})^{\top} \theta^{\AYA} - \pi_{t(d)}^{\AYA} - (A_{t(d)}^{\AYA} - \pi_{t(d)}^{\AYA}) \tau^{\AYA} \right) \begin{bmatrix}  \phi^{\AYA}(S_{t(d)}) \\ \pi_{t(d)}^{\AYA} \\ A_{t(d)}^{\AYA}-\pi_{t(d)}^{\AYA} \end{bmatrix} \right] = 0.
+\end{align*}
+
+\paragraph{Care-partner intervention onto care-partner psychological distress and positive affect.}
+
+\begin{align*}
+    \E\left[\left(\Stress_d^{\CARE} - \phi^{\CARE}(S_{t(d)})^{\top} \theta^{\CARE} - \pi_{t(d)}^{\CARE} - (A_{t(d)}^{\CARE} - \pi_{t(d)}^{\CARE}) \tau^{\CARE} \right) \begin{bmatrix}  \phi^{\CARE}(S_{t(d)}) \\ \pi_{t(d)}^{\CARE} \\ A_{t(d)}^{\CARE}-\pi_{t(d)}^{\CARE} \end{bmatrix} \right] = 0.
+\end{align*}
+
+\paragraph{Game intervention onto relational quality.}
+
+\begin{align*}
+    \E\left[\left(\Rel_w^{\EDGE} - \phi^{\EDGE}(S_{t(w)})^{\top} \theta^{\EDGE} - \pi_{t(w)}^{\EDGE} - (A_{t(w)}^{\EDGE} - \pi_{t(w)}^{\EDGE}) \tau^{\EDGE} \right) \begin{bmatrix}  \phi^{\EDGE}(S_{t(w)}) \\ \pi_{t(w)}^{\EDGE} \\ A_{t(w)}^{\EDGE}-\pi_{t(w)}^{\EDGE} \end{bmatrix} \right] = 0.
+\end{align*}
+
+\newpage
+
+\appendix
+
+\section{Trick to Deal with Heterogeneity in Action Space} \label{sec:flatten}
+
+Our online algorithm is a multi-agent RL algorithm, where each agent makes decisions on a different time-scale. This is due to the heterogeneity in the action space. To apply the approach developed in the existing literature, we need to deal with this heterogeneity.
+
+Our state transition is given by
+\begin{align*}
+    S_{t+1} = \begin{cases}
+        \sP_t(\cdot \mid S_t, A_t^{\AYA}, A_t^{\CARE}, A_t^{\EDGE}), & \text{if } t \text{ is a new week}, \\
+        \sP_t(\cdot \mid S_t, A_t^{\AYA}, A_t^{\CARE}), & \text{if } t \text{ is a new day}, \\
+        \sP_t(\cdot \mid S_t, A_t^{\AYA}), & \text{ otherwise}.
+    \end{cases}
+\end{align*}
+
+The trick we use here is to create dumpy action when the daily action or the weekly action is not needed. Specifically, the action space at any $t$ is a three dimensional vector:
+\begin{itemize}
+    \item $t$ is a new week $w$: $\mA_t = (A_t^{\AYA}, A_{t}^{\CARE}, A_{t}^{\EDGE})$.
+    \item $t$ is a new day $d$: $\mA_t = (A_{t}^{\AYA}, A_{t}^{\CARE}, A^{\Dummy})$.
+    \item otherwise: $\mA_t = (A_{t}^{\AYA}, A^{\Dummy}, A^{\Dummy})$.
+\end{itemize}
+
+The new transition is given by
+\begin{align*}
+    S_{t+1} = \tilde{\sP}_t(\cdot \mid S_t, \mA_t),
+\end{align*}
+where we write $\mA_t = (\mA_t^{(1)}, \mA_t^{(2)}, \mA_t^{(3)})$ and
+\begin{align*}
+    \tilde{\sP}_t(\cdot \mid S_t, \mA_t) = \begin{cases}
+        \sP_t(\cdot \mid S_t, \mA_t^{(1)}, \mA_t^{(2)}, \mA_t^{(3)}), & \text{if } t \text{ is a new week}, \\
+        \sP_t(\cdot \mid S_t, \mA_t^{(1)}, \mA_t^{(2)}), & \text{if } t \text{ is a new day}, \\
+        \sP_t(\cdot \mid S_t, \mA_t^{(1)}), & \text{ otherwise}.
+    \end{cases}
+\end{align*}
+
+An important property of Kelly's approach is that the policy need to converge when $N \rightarrow \infty$.
+
+We first set the dummy action $A^{\Dummy} \sim \gU\{0, 1\}$. Assume that the care-partner agent and the game agent satisfy that $\pi_{i, t}^{\CARE} = \pi_{i, t}^{\CARE}(\cdot; \beta_{i, t}^{\CARE})$ and $\pi_{i, t}^{\EDGE} = \pi_{i, t}^{\EDGE}(\cdot; \beta_{i, t}^{\EDGE})$, respectively. Then we need
+$$
+    \beta_{i, t}^{\CARE} \xrightarrow{p} \beta^{\CARE}, \quad \beta_{i, t}^{\EDGE} \xrightarrow{p} \beta^{\EDGE} \text{ as } i,N \rightarrow \infty,
+$$
+where $\beta^{\CARE}$ and $\beta^{\EDGE}$ are some fixed target policy parameters.
+
+Denote by $\vtheta_{i, t}$ be the joint vector for $(\beta_{i, t}^{\AYA}, \beta_{i, t}^{\CARE}, \beta_{i, t}^{\EDGE})$. Then we have
+$$
+    \vtheta_{i, t} \xrightarrow{p} \vtheta \text{ as } i,N \rightarrow \infty.
+$$
+where $\vtheta$ is some fixed target policy parameter.
+
+% \maketitle
+
+\bibliographystyle{apalike}
+\bibliography{main}
+
+\end{document}

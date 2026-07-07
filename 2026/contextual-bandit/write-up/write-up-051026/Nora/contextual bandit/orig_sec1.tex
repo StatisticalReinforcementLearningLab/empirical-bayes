@@ -1,0 +1,80 @@
+The context effects cannot be learned at this step as learning is individualized—recall that only one of the two contexts is observed for each participant, since $c_i$ is a time-invariant property, such as a demographic variable. 
+
+Therefore, the learning algorithm will assume the same beliefs as it does in the vanilla MAB setting. It will again use Normal-Normal conjugacy to update our beliefs about the distribution of each participant's parameters as we described previously in Section 2.2. 
+
+The learning algorithm will again output an estimate, which we will call $\hat{\theta}_{i,a}^{L}$, and a measure of uncertainty about this estimate, which we will call $\sigma_{i,a,t}^{2,L}$. The action selection strategy therefore still receives two values (estimate and uncertainty) per participant per arm at each time point.
+
+% \begin{figure}[t]
+%     \centering
+%     \includegraphics[width=0.8\linewidth, trim=0 0 0 0, clip]{final_regret_vs_distance_ratio.png}
+%     \caption{Priors were set as $\mu_0 = [0,0], \tau_0 = [1,1]$ with 500 per $\sigma$ value.}
+%     \label{fig:ratio}
+% \end{figure}
+
+\subsectiontitle{Action Selection Strategy}
+
+The empirical Bayes action selection strategy believes that the estimate output by the learning algorithm, referred to as $\hat{\theta}_{i,a}^{L}$, is an estimate of the mean of $\theta_{i,a}^{L}=\boldsymbol{\theta}_{i,a}^{\top}x_i$. These estimates are distributed around the true mean:
+$$\hat{\theta}_{i,a,t}^{L}\mid\theta_{i,a}
+\sim
+\mathcal{N}(x_i^\top\theta_{i,a},\sigma_{i,a,t}^{2,L})$$
+
+Furthermore, EB believes that $\boldsymbol{\theta}_{i,a} \sim \mathcal{N}(\boldsymbol{\mu}_a, \boldsymbol{\Sigma}_a)$. EB will empirically determine the hyperdistribution through the following likelihood model where $\ell_p(\tau_a^2)$ is the profile log-likelihood:
+$$\ell(\boldsymbol{\mu}_a,\tau_a^2)
+=
+-\frac12
+\sum_{i=1}^n
+\left[
+\log\!\left(2\pi(\tau_a^2+\sigma^2_{i,a,t})\right)
++
+\frac{
+\left(\hat{\theta}^{L}_{i,a,t}-\mu_{a,0}-\mu_{a,1}c_i\right)^2
+}{
+\tau_a^2+\sigma^2_{i,a,t}
+}
+\right].$$
+$$\hat{\tau}_a^2
+=
+\arg\max_{\tau_a^2\ge 0}\;
+\ell_p(\tau_a^2), \quad \hat{\boldsymbol{\mu}}_a
+=
+\left(
+\sum_{i=1}^{n}
+(\hat{\tau}_a^2+\sigma^2_{i,a,t})^{-1}
+\begin{pmatrix}
+1 & c_i\\
+c_i & c_i^2
+\end{pmatrix}
+\right)^{-1}
+\left(
+\sum_{i=1}^{n}
+(\hat{\tau}_a^2+\sigma^2_{i,a,t})^{-1}
+\begin{pmatrix}
+\hat{\theta}^{L}_{i,a,t}\\
+c_i\hat{\theta}^{L}_{i,a,t}
+\end{pmatrix}
+\right)$$
+
+\textit{Note}: Unfortunately, we are unable to get an estimate for the full covariance matrix beyond $\hat{\tau}^2_a$, given that the learning algorithm does not separately estimate the $\boldsymbol{\theta}_{i,a}$. However, for a more precise estimate, one can estimate $\tau^2_a$ separately by $c_i$.
+
+Then, EB will use this hyperdistribution to update each participant's parameters:
+$$\boldsymbol{\theta}_{i,a}
+\mid
+\hat{\theta}^{L}_{i,a,t}
+\sim
+\mathcal{N}
+\left(\tilde{\boldsymbol{\Sigma}}_{i,a,t}
+\left(
+\boldsymbol{\Sigma}_a^{-1}\boldsymbol{\mu}_a
++
+\frac{1}{\sigma^{2,L}_{i,a,t}}
+\boldsymbol{x}_i
+\hat{\theta}^{L}_{i,a,t}
+\right),
+\left(
+\boldsymbol{\Sigma}_a^{-1}
++
+\frac{1}{\sigma^{2,L}_{i,a,t}}
+\boldsymbol{x}_i
+\boldsymbol{x}_i^{\top}
+\right)^{-1}
+\right)$$

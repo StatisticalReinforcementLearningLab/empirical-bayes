@@ -1,0 +1,223 @@
+\documentclass{article}
+\input{../preamble}
+
+\title{Sample Size \& Effect Size Calculation\\
+\large Empirical Bayes Contextual Bandit}
+\author{Claude}
+\date{May 10, 2026}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Sample Size Formula for Longitudinal Bandit Studies}
+% ============================================================
+
+\subsection{Model Setup}
+
+The reward model is
+\[
+    R_{i,t}(a) = \theta_{i,a,0} + \theta_{i,a,1}\, c_{i,t} + \varepsilon_{i,t,a},
+    \qquad \varepsilon_{i,t,a} \overset{\text{iid}}{\sim} \mathcal{N}(0, \sigma^2),
+\]
+where $i \in [n]$ indexes participants, $t \in [T]$ indexes time points, $a \in \{0,1\}$ is the action, and $c_{i,t} \in \{0,1\}$ is the binary context variable with $P(c_{i,t} = 1) = p$ for all $i, t$. Each participant's parameters are drawn from a population hyperdistribution:
+\[
+    \boldsymbol{\theta}_{i,a} \sim \mathcal{N}(\boldsymbol{\mu}_a,\, \boldsymbol{\Sigma}_a),
+    \qquad
+    \boldsymbol{\mu}_a = \begin{pmatrix} \mu_{a,0} \\ \mu_{a,1} \end{pmatrix},
+    \quad
+    \boldsymbol{\Sigma}_a = \begin{pmatrix} \tau^2_{a,00} & \tau_{a,01} \\ \tau_{a,10} & \tau^2_{a,11} \end{pmatrix}.
+\]
+Here $\mu_{a,0}$ is the population mean baseline reward under arm $a$, and $\mu_{a,1}$ is the
+population mean context slope under arm $a$. The diagonal entries $\tau^2_{a,00}$ and
+$\tau^2_{a,11}$ are the between-person variances of the baseline and context slope respectively,
+and $\tau_{a,01}$ is their covariance within arm $a$.
+
+\subsection{Treatment Effects by Context}
+
+The treatment effect at context $c \in \{0, 1\}$ is
+\[
+    \delta_c = \bigl(\mu_{1,0} + \mu_{1,1}\cdot c\bigr) - \bigl(\mu_{0,0} + \mu_{0,1}\cdot c\bigr).
+\]
+Explicitly:
+\begin{align*}
+    \delta_0 &= \mu_{1,0} - \mu_{0,0} &&\text{(treatment effect at } c = 0\text{)}\\
+    \delta_1 &= (\mu_{1,0} + \mu_{1,1}) - (\mu_{0,0} + \mu_{0,1}) &&\text{(treatment effect at } c = 1\text{)}
+\end{align*}
+If $\mu_{1,1} \neq \mu_{0,1}$, the treatment effect differs by context (interaction effect).
+The \textbf{marginal treatment effect}, averaging over the context distribution, is
+\[
+    \delta = (1 - p)\,\delta_0 + p\,\delta_1
+    = (\mu_{1,0} - \mu_{0,0}) + p\,(\mu_{1,1} - \mu_{0,1}).
+\]
+The standardized marginal effect size is $d = \delta / \sigma$.
+
+\subsection{Variance of the Estimated Treatment Effect}
+
+Let $T_a$ denote the number of times arm $a$ is pulled per participant ($T_0 + T_1 = T$).
+Person $i$'s average reward under arm $a$, averaging over the $T_a$ time points at which arm $a$
+was pulled, is
+\[
+    \bar{R}_{i,a} = \theta_{i,a,0} + \theta_{i,a,1}\,\bar{c}_{i,a} + \bar{\varepsilon}_{i,a},
+\]
+where $\bar{c}_{i,a}$ is the empirical proportion of $c_{i,t} = 1$ among the pulls of arm $a$,
+which concentrates around $p$ for large $T_a$.
+Person $i$'s estimated treatment effect is
+\[
+    \hat{\delta}_i = \bar{R}_{i,1} - \bar{R}_{i,0}
+    \approx (\theta_{i,1,0} - \theta_{i,0,0}) + (\theta_{i,1,1} - \theta_{i,0,1})\,p
+    + \bar{\varepsilon}_{i,1} - \bar{\varepsilon}_{i,0}.
+\]
+This is an estimator of the marginal treatment effect $\delta$.
+Its variance has two components:
+\[
+    \mathrm{Var}(\hat{\delta}_i)
+    = \underbrace{
+        (\tau^2_{1,00} + \tau^2_{0,00})
+        + p^2(\tau^2_{1,11} + \tau^2_{0,11})
+        + 2p(\tau_{1,01} + \tau_{0,01})
+      }_{\text{between-person heterogeneity in treatment effect}}
+    + \underbrace{
+        \sigma^2\!\left(\frac{1}{T_1} + \frac{1}{T_0}\right)
+      }_{\text{within-person estimation noise}}.
+\]
+The three terms in the between-person component are:
+\begin{itemize}
+    \item $\tau^2_{1,00} + \tau^2_{0,00}$: variation across people in their baseline responses to each arm (relevant at any $p$).
+    \item $p^2(\tau^2_{1,11} + \tau^2_{0,11})$: variation across people in how much their context slope differs between arms, weighted by how often $c=1$ occurs. Disappears at $p=0$.
+    \item $2p(\tau_{1,01} + \tau_{0,01})$: contribution from the within-arm covariance between baseline and context slope. Disappears at $p=0$.
+\end{itemize}
+
+The population-level estimator $\hat{\delta} = \frac{1}{n}\sum_i \hat{\delta}_i$ has variance
+\[
+    \mathrm{Var}(\hat{\delta})
+    = \frac{1}{n}\left[
+        (\tau^2_{1,00} + \tau^2_{0,00})
+        + p^2(\tau^2_{1,11} + \tau^2_{0,11})
+        + 2p(\tau_{1,01} + \tau_{0,01})
+        + \sigma^2\!\left(\frac{1}{T_1} + \frac{1}{T_0}\right)
+    \right].
+\]
+
+\subsection{Sample Size Formula}
+
+\paragraph{Step 1: the rejection rule.}
+We test $H_0: \delta = 0$ vs.\ $H_1: \delta \neq 0$.
+By the central limit theorem, $\hat{\delta}$ is approximately normal for large $n$.
+Standardizing, the test statistic
+\[
+    Z = \frac{\hat{\delta}}{\sqrt{\mathrm{Var}(\hat{\delta})}}
+\]
+is approximately $\mathcal{N}(0, 1)$ under $H_0$ and $\mathcal{N}(\lambda, 1)$ under $H_1$,
+where $\lambda = \delta / \sqrt{\mathrm{Var}(\hat{\delta})}$ is the noncentrality parameter —
+how far the distribution shifts when the true effect is $\delta$.
+Note that the variance is 1 under \emph{both} hypotheses; only the mean differs.
+We reject $H_0$ when $|Z| > z_{\alpha/2}$, where $z_{\alpha/2}$ is the upper $\alpha/2$ quantile
+of the standard normal (e.g., $z_{0.025} = 1.96$).
+
+\paragraph{Step 2: the power condition.}
+Power is $P(|Z| > z_{\alpha/2} \mid H_1)$.
+Under $H_1$, $Z \sim \mathcal{N}(\lambda, 1)$, so
+\[
+    \text{power}
+    = P(Z > z_{\alpha/2} \mid H_1)
+    = P\!\left(\underbrace{Z - \lambda}_{\sim\,\mathcal{N}(0,1)} > z_{\alpha/2} - \lambda\right)
+    = 1 - \Phi(z_{\alpha/2} - \lambda).
+\]
+Setting this equal to the desired power $1 - \beta$:
+\[
+    1 - \Phi(z_{\alpha/2} - \lambda) = 1 - \beta
+    \implies
+    \Phi(z_{\alpha/2} - \lambda) = \beta
+    \implies
+    z_{\alpha/2} - \lambda = -z_\beta,
+\]
+where $z_\beta = \Phi^{-1}(1-\beta)$ (e.g., $z_{0.2} = 0.84$ for 80\% power).
+Rearranging gives the key condition:
+\[
+    \lambda = z_{\alpha/2} + z_\beta,
+    \quad\text{i.e.,}\quad
+    \frac{\delta}{\sqrt{\mathrm{Var}(\hat{\delta})}} = z_{\alpha/2} + z_\beta.
+\]
+This says: the true signal $\delta$ must be large enough relative to the estimation noise
+$\sqrt{\mathrm{Var}(\hat{\delta})}$ to bridge \emph{both} the false-positive threshold
+($z_{\alpha/2}$) and the power gap ($z_\beta$) simultaneously.
+
+\paragraph{Step 3: solving for $n$.}
+Define the total between-person variance in the treatment effect as
+\[
+    V_{\mathrm{between}}
+    = (\tau^2_{1,00} + \tau^2_{0,00})
+      + p^2(\tau^2_{1,11} + \tau^2_{0,11})
+      + 2p(\tau_{1,01} + \tau_{0,01}),
+\]
+so that $\mathrm{Var}(\hat{\delta}) = \frac{1}{n}\!\left[V_{\mathrm{between}} +
+\sigma^2\!\left(\frac{1}{T_1}+\frac{1}{T_0}\right)\right]$.
+Substituting into the power condition and squaring both sides:
+\[
+    \frac{\delta^2}{\mathrm{Var}(\hat{\delta})} = (z_{\alpha/2} + z_\beta)^2
+    \implies
+    \frac{n\,\delta^2}{V_{\mathrm{between}} + \sigma^2(1/T_1 + 1/T_0)}
+    = (z_{\alpha/2} + z_\beta)^2.
+\]
+Dividing numerator and denominator by $\sigma^2$ and writing $d = \delta/\sigma$:
+\[
+    \frac{n\,d^2}{V_{\mathrm{between}}/\sigma^2 + 1/T_1 + 1/T_0}
+    = (z_{\alpha/2} + z_\beta)^2.
+\]
+This single equation — the \textbf{joint constraint} — is the core result.
+It can be rearranged in two useful ways:
+
+\medskip
+\noindent Solve for $n$ (given $T_0, T_1$):
+\[
+    \boxed{n \;\geq\;
+    \frac{(z_{\alpha/2} + z_\beta)^2}{d^2}
+    \left[\frac{V_{\mathrm{between}}}{\sigma^2} + \frac{1}{T_1} + \frac{1}{T_0}\right].}
+\]
+
+\noindent Or leave as the joint constraint on $(n, T_0, T_1)$, which makes the trade-offs explicit:
+the left side is the ``budget'' your design provides (more participants $n$ and larger effect $d$
+increase it), and the right side is the ``cost'' you must cover (between-person heterogeneity
+$V_{\mathrm{between}}/\sigma^2$ is a fixed floor that no amount of $T$ can reduce;
+$1/T_1 + 1/T_0$ is the additional cost from limited time points per arm):
+\[
+    \underbrace{\frac{n\,d^2}{(z_{\alpha/2}+z_\beta)^2}}_{\text{design budget}}
+    =
+    \underbrace{\frac{V_{\mathrm{between}}}{\sigma^2}}_{\text{irreducible floor}}
+    +
+    \underbrace{\frac{1}{T_1} + \frac{1}{T_0}}_{\text{cost of short horizon}}.
+\]
+
+\subsection{Numeric Values}
+
+For 80\% power and $\alpha = 0.05$: $(z_{0.025} + z_{0.2})^2 = (1.96 + 0.84)^2 = 7.84$.
+Example: moderate heterogeneity ($\tau^2_{a,00} = 0.25$, $\tau^2_{a,11} = 0.25$,
+$\tau_{a,01} = 0$), $\sigma = 0.5$, $p = 0.2$, equal allocation $T_0 = T_1 = T/2$:
+\[
+    V_{\mathrm{between}} = (0.25 + 0.25) + (0.04)(0.25 + 0.25) + 0 = 0.52,
+    \qquad
+    \frac{V_{\mathrm{between}}}{\sigma^2} = 2.08.
+\]
+
+\begin{center}
+\begin{tabular}{lll}
+\hline
+$d$ & Formula (equal allocation) & Example ($p=0.2$, $T=50$) \\
+\hline
+$0.2$ & $n \geq 196\!\left[V_{\mathrm{between}}/\sigma^2 + 4/T\right]$ & $n \geq 196(2.08 + 0.08) = 423$ \\
+$0.5$ & $n \geq 31.4\!\left[V_{\mathrm{between}}/\sigma^2 + 4/T\right]$ & $n \geq 31.4(2.08 + 0.08) = 68$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Caveat for Bandit Settings}
+
+The formula assumes the analyst controls $T_0$ and $T_1$. In a bandit, arm allocation is adaptive
+and $T_0, T_1$ are random. Similarly, $\bar{c}_{i,a}$ may differ between arms if context
+influences arm selection (which it does, by design). The formula is therefore optimistic, but
+gives principled $(n, T)$ ranges to avoid degenerate environments.
+
+\end{document}

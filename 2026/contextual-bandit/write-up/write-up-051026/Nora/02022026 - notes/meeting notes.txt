@@ -1,0 +1,25 @@
+MEETING NOTES 2/2
+
+USE THETA HAT INSTEAD OF X (THETA IS ESTIMATOR)
+ONLY 100 data points at each time point (only one action observed)
+50 tuples, 2x50, 3x50 at each time point 
+technically 100 estimators 
+theta hat 
+double check what mu hat (marginal is posterior)
+don't write prior; step 1 is empirical bayes 
+say the prior has mu_a, tau^2)a, because empriical ayes we estimate 
+50 individuals, 1000 trials, many more than 11 time points 
+first task: get environment straight. environment is how 50 people will respond to actions delivered (reward)
+graphics - how would you know whether or not your algorithm is doing a good job. good job if sum of rewards is high. bellman's equations - can derive the optimal policy for environment (bc no state, so pretty simple)
+to make environment, need to act as oracle, know what thetas as 
+in this setting derive the optimal policy mathematically, run algorithm, and see - one graph with 50 people and optimal policy, compared to what your learning algorithm is doing. decision-making is combo of learning algorithm and action selection strategy 
+when you first make up environments, very easy to make environment overally trivial. noisier the environment, harder it'll be on algorithm (also smaller # numer of peole). t is much less importnat. t is usually 140 or 150. 
+time is x axis, sum of rewards is across y axis, one curve is using oracle policy and other curves using different variants of the algorithm
+dont have multipl eenvironments on one plot, separate your environment. can have different algorithms on one plot but not one plot with dif environments. we dont control environment so not interested in comparing environments. 
+after that, then we'll start talking to ziping 
+
+one algorithm, everyone is the same - bayesian learning 
+standard gaussian thompson sampling on each individual. or you can pretend everyon'es identical and run it on everybody together 
+third is empirical bayes 
+bayesian learning algorithm, empirical bayes action selection 
+play around with variance of actual reward.also if t and n are smaller will be noisier. if noise is extremely high, will need larger n, larger t

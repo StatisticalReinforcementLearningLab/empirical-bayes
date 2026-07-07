@@ -1,0 +1,251 @@
+\documentclass[letterpaper, 11pt]{extarticle}
+\input{preamble}
+\input{format}
+\input{commands}
+\usepackage{newpxmath}
+\usepackage[margin=0.95in]{geometry}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\definecolor{softpurple}{HTML}{9C88B9}
+\definecolor{softblue}{HTML}{B8BDDE}
+\usepackage{cancel}
+\usepackage{csquotes}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+
+\definecolor{darkblue}{RGB}{13, 39, 61}  % Yankees Blue
+\definecolor{mediumblue}{RGB}{62, 105, 133}  % Teal Blue
+\definecolor{lightblue}{RGB}{138, 167, 188}  % Pewter Blue
+\definecolor{pastelblue}{RGB}{166, 190, 209}  % Pastel Blue
+\definecolor{columbiablue}{RGB}{205, 215, 223}  % Columbia Blue
+\definecolor{graytext}{RGB}{90, 90, 90}  % Neutral grey for comments
+\usepackage{listings}
+\lstset{
+  language=R,
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny,
+  stepnumber=1}
+
+
+\lstset{ 
+  language=R,
+  basicstyle=\ttfamily\small\color{darkblue},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  numbersep=5pt,
+  backgroundcolor=\color{white},
+  showspaces=false,
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=true,
+  captionpos=b,
+  escapeinside={\%*}{*)},
+  commentstyle=\color{graytext},
+  keywordstyle=\color{softpurple},
+  stringstyle=\color{pastelblue}
+}
+
+\setcitestyle{square}
+
+\usepackage{color}
+\usepackage{framed}
+\newcommand{\sam}[1]{
+  {\color{blue} [SAM: {#1}]}
+ }
+ \newcommand{\asl}[1]{
+  {\color{blue} [ASL: {#1}]}
+ }
+
+ \definecolor{nyscolor}{HTML}{a63a47}
+
+\newcommand{\nys}[1]{%
+  {\color{nyscolor} [NYS: {#1}]}%
+}
+
+% Custom colors
+\definecolor{shadecolor}{RGB}{255,255,255}  % white background
+\definecolor{Rcode}{RGB}{136, 18, 128}      % keyword purple (similar to print)
+\definecolor{Rout}{RGB}{90, 90, 90}         % output gray
+\definecolor{Rcomment}{RGB}{110,110,110}    % comment gray
+
+% Redefine how R chunks are styled
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd{\@Verbatim}{\fbox}{\color{black}}{}{}
+\makeatother
+
+% Required if using knitr
+\usepackage{alltt}
+\usepackage{fancyvrb}
+\DefineVerbatimEnvironment{Sinput}{Verbatim}{fontshape=sl,formatcom=\color{Rcode},commandchars=\\\{\}}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{formatcom=\color{Rout}}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{formatcom=\color{Rcode}}
+
+\geometry{letterpaper}                  
+\hypersetup{colorlinks=false, allcolors=blue}
+
+\begin{document}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\footnotesize{\textit{Nora Y. Sun (STAT 91R)}}}
+%\renewcommand{\headrulewidth}{0pt}
+\begin{Large}
+    \textsf{\textbf{Empirical Bayes: Part II (Two-Armed Bandit Simulation Outline)}}   \par
+    Statistical Reinforcement Learning Lab
+\end{Large}
+
+\vspace{2ex}
+
+This is a two-armed bandit simulation. The basic notation is as follows: 
+\begin{itemize}
+    \item Participants ($i$): There are 50 participants denoted as $i=1, i=2, \dots, i=50$.
+    \item Decision times ($t$): There are 11 decision times denoted as $t=0, t=1, t=2,\dots,t=11$. 
+    \item Actions ($A$): At every time point, the bandit algorithm chooses between two possible actions denoted as $a=0$ and $a=1$ respectively. 
+    \item Reward ($R$): Based on the action selected by the algorithm, the algorithm will receive a reward. $r$ may be equal to any real number. 
+\end{itemize}
+
+\textsf{\textbf {I. Defining the underlying environment}}
+
+Every time the algorithm chooses an action, the underlying environment will generate a reward either completely at random (e.g., using a random number generator) or performing draws from distributions that may or may not be Normal. \\
+
+\textsf{\textbf {II. Learning algorithm}}
+
+The learning algorithm will observe all  actions and rewards  up to and including time $t=11$ on individual $i$. Based on some method, the learning algorithm will estimate the value of a parameter called $\theta_{i,a}$ for each individual and action. These estimates will be called $\hat{\theta}_{i,a,t}, i=1,...,50; t=11; a=0,1$.
+
+The learning algorithm will also output a measure of its uncertainty in the estimate $\hat{\theta}_{i,a,t}$ of the parameter $\theta_{i,a}$ for each individual and action.  This uncertainty is denoted by $\sigma^2_{i,a,t}$.
+
+After each time point $t$, the learning algorithm will share updated $\hat{\theta}_{i,a,t}, \sigma^2_{i,a,t}$ values with the action selection strategy. As there are 50 participants and 2 possible actions, the action selection strategy will receive a total of 200 data points at every time point.  \\
+
+\textsf{\textbf {III. Action Selection Strategy}}
+
+The action selection strategy believes that the $\hat{\theta}_{i,a,t}$ produced by the learning algorithm are estimates of the true mean (of some parameter of interest that determines the reward) of each individual-action combination at time $t$. It also believes that $\sigma^2_{i,a,t}$ is the learning algorithm's measure of uncertainty regarding its guess at the mean. 
+
+Specifically, the action selection strategy is built on the following premise (which may or may not align with how the data was actually generated):
+
+\begin{problem}
+
+\textit{(1) Distribution of the learning algorithm's estimates of the mean ($\hat{\theta}_{i,a,t}$)}\\
+
+$\theta_{i,a}$ is the mean of some parameter that determines the reward distribution. 
+$$\hat{\theta}_{i,a,t} \sim N(\theta_{i,a}, \sigma^2_{i,a})$$
+The action selection strategy believes that the learning algorithm is attempting to guess $\theta_{i,a}$ and will produce a number of estimates at each time point ($\hat{\theta}_{i,a,t}$), for which it assumes the following Normal distribution. The learning algorithm also provides a measure of uncertainty for each estimate $\sigma^2_{i,a,t}$, which the action selection strategy believes to equal $v_{i,a}$ (the variance of the learning algorithm's estimates of the mean) in this model.\\
+
+\textit{(2) Distribution of the true means ($\theta_{i,a}$)}\\
+
+Furthermore, the action selection strategy believes that the true means $\theta_{i,a}$ of each individual-action combination follow an underlying Normal distribution.
+\begin{align*}
+    \theta_{i,{a=0}} &\sim N\!\big(\mu_{a=0}, \, \tau_{a=0}^{2}\big)\\
+    \theta_{i,{a=1}} &\sim N\!\big(\mu_{a=1}, \, \tau_{a=1}^{2}\big)
+\end{align*}
+Specifically, the action selection strategy believes that there is a population mean and a between-person variance represented by hyperparameters $\mu_{a}$ and $\tau_{a}^{2}$ respectively. 
+
+\end{problem}
+
+Based on the action selection strategy's model of the data specified above, the action selection strategy will do the following after receiving the $\hat{\theta}_{i,a,t}$ and $\sigma^2_{i,a,t}$ at each time point.
+
+\begin{enumerate}
+    \item First, the action selection strategy will produce estimates for the population-level hyperparameters using the data. The action selection strategy will first estimate the variance and then the mean. 
+
+    \[
+    \hat{\tau}_a^{2} 
+    = 
+    \arg\max_{\tau_a^{2} \ge 0} \; \ell_{p}(\tau_a^{2}),
+    \qquad
+    \hat{\mu}_a
+    =
+    \frac{
+        \displaystyle\sum_{i=1}^{n}
+        \left( \hat{\tau}_a^{2} + \sigma^2_{i,a,t} \right)^{-1}
+        \hat{\theta}_{i,a,t}
+    }{
+        \displaystyle\sum_{i=1}^{n}
+        \left( \hat{\tau}_a^{2} + \sigma^2_{i,a,t} \right)^{-1}
+    }.
+    \]
+
+    \item Now, the learning algorithm will perform an update on the estimates of $\theta_{i,a}$ for each individual. 
+    
+    \begin{align*}
+    \text{Prior: } 
+    &\theta_{i,a} \sim \mathcal{N}(\hat{\mu}_a, \hat{\tau}_a^{2})\\
+    \text{Posterior: } 
+    &\theta_{i,a} \mid \hat{\theta}_{i,a,t}, \sigma^2_{i,a,t}
+    \sim
+    \mathcal{N}\!\Bigg(
+        \lambda_{i,a,t} \, \hat{\theta}_{i,a,t}
+        + (1 - \lambda_{i,a,t}) \, \hat{\mu}_a,
+        \;
+        \Bigg(
+            \frac{1}{\sigma^2_{i,a,t}}
+            +
+            \frac{1}{\hat{\tau}_a^{2}}
+        \Bigg)^{-1}
+    \Bigg)
+    \end{align*}
+
+    Aligned with empirical Bayes, we notice that there is a shrinkage term $\lambda_{i,a,t}$ that weighs the new information based on a comparison between its variance and our estimate of the population-level variance.
+
+    \[
+    \lambda_{i,a,t}
+    =
+    \frac{\hat{\tau}_a^{2}}
+    {\hat{\tau}_a^{2} + \sigma^2_{i,a,t}}
+    \]
+
+    \textit{Please see the \enquote{Step Count Problem} displays 19-30 for derivation.}
+
+    \item Now, using the properties of the Normal distribution, we can determine the probability that a given arm will result in the greater value based on the two posterior distributions. 
+
+    Recall that the action strategy believes that the rewards associated with the two arms are independent Normals, and the difference of two independent Normals is Normal. Thus, the action strategy believes:
+    \[
+    \theta_{i,1} - \theta_{i,0}
+    \;\sim\;
+    \mathcal{N}\!\Bigg(
+    \Big[\lambda_{i,1,t} x_{i,1,t} + (1 - \lambda_{i,1,t}) \hat{\mu}_{1}\Big]
+    -
+    \Big[\lambda_{i,0,t} x_{i,0,t} + (1 - \lambda_{i,0,t}) \hat{\mu}_{0}\Big],
+    \;
+    \left(\sigma_{i,1,t}^{-2} + \hat{\tau}_{1}^{-2}\right)^{-1}
+    +
+    \left(\sigma_{i,0,t}^{-2} + \hat{\tau}_{0}^{-2}\right)^{-1}
+    \Bigg)
+    \]
+    
+    Thus, the probability of a random draw from one arm yielding a greater value is:
+    \[
+    \textrm{P}\!\left(\theta_{i,1} > \theta_{i,0}\right)
+    =
+    \Phi\!\left(
+    \frac{
+    \Big[\lambda_{i,1,t} x_{i,1,t} + (1 - \lambda_{i,1,t}) \hat{\mu}_{1}\Big]
+    -
+    \Big[\lambda_{i,0,t} x_{i,0,t} + (1 - \lambda_{i,0,t}) \hat{\mu}_{0}\Big]
+    }{
+    \sqrt{
+    \left(\sigma_{i,1,t}^{-2} + \hat{\tau}_{1}^{-2}\right)^{-1}
+    +
+    \left(\sigma_{i,0,t}^{-2} + \hat{\tau}_{0}^{-2}\right)^{-1}
+    }
+    }
+    \right)
+    \]
+    where $\Phi(\cdot)$ is the standard Normal CDF.
+    
+    Using the principles of Thompson Sampling, at the next time point $t+1$, we will choose action 1 with probability $\textrm{P}\!\left(\theta_{i,1} > \theta_{i,0}\right)$ and action 0 with $1-\textrm{P}\!\left(\theta_{i,1} > \theta_{i,0}\right)=\textrm{P}\!\left(\theta_{i,0} > \theta_{i,1}\right)$.
+
+    \[
+    \mathcal{A}_i^{(t+1)} =
+    \begin{cases}
+    1, & \text{with probability } \textrm{P}\!\left(\theta_{i,1} > \theta_{i,0}\right),\\
+    0, & \text{with probability } 1 - \textrm{P}\!\left(\theta_{i,1} > \theta_{i,0}\right).
+    \end{cases}
+    \]
+
+    \item Based on the actions selected by the action selection strategy, the environment will then generate another reward, the learning algorithm will generate another set of estimates, and the action selection strategy will repeat this procedure. 
+\end{enumerate}
+
+\end{document}
+

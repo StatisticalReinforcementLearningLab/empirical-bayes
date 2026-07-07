@@ -1,0 +1,122 @@
+\documentclass[letterpaper, 11pt]{extarticle}
+\input{preamble}
+\input{format}
+\input{commands}
+\usepackage{newpxmath}
+\usepackage[margin=0.95in]{geometry}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\definecolor{softpurple}{HTML}{9C88B9}
+\definecolor{softblue}{HTML}{B8BDDE}
+\usepackage{cancel}
+\usepackage{csquotes}
+\usepackage{enumitem}
+
+\definecolor{darkblue}{RGB}{13, 39, 61}  % Yankees Blue
+\definecolor{mediumblue}{RGB}{62, 105, 133}  % Teal Blue
+\definecolor{lightblue}{RGB}{138, 167, 188}  % Pewter Blue
+\definecolor{pastelblue}{RGB}{166, 190, 209}  % Pastel Blue
+\definecolor{columbiablue}{RGB}{205, 215, 223}  % Columbia Blue
+\definecolor{graytext}{RGB}{90, 90, 90}  % Neutral grey for comments
+\usepackage{listings}
+\lstset{
+  language=R,
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny,
+  stepnumber=1}
+
+
+\lstset{ 
+  language=R,
+  basicstyle=\ttfamily\small\color{darkblue},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  numbersep=5pt,
+  backgroundcolor=\color{white},
+  showspaces=false,
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=true,
+  captionpos=b,
+  escapeinside={\%*}{*)},
+  commentstyle=\color{graytext},
+  keywordstyle=\color{softpurple},
+  stringstyle=\color{pastelblue}
+}
+
+\setcitestyle{square}
+
+\usepackage{color}
+\usepackage{framed}
+\newcommand{\sam}[1]{
+  {\color{blue} [SAM: {#1}]}
+ }
+ \newcommand{\asl}[1]{
+  {\color{blue} [ASL: {#1}]}
+ }
+
+ \definecolor{nyscolor}{HTML}{a63a47}
+
+\newcommand{\nys}[1]{%
+  {\color{nyscolor} [NYS: {#1}]}%
+}
+
+% Custom colors
+\definecolor{shadecolor}{RGB}{255,255,255}  % white background
+\definecolor{Rcode}{RGB}{136, 18, 128}      % keyword purple (similar to print)
+\definecolor{Rout}{RGB}{90, 90, 90}         % output gray
+\definecolor{Rcomment}{RGB}{110,110,110}    % comment gray
+
+% Redefine how R chunks are styled
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd{\@Verbatim}{\fbox}{\color{black}}{}{}
+\makeatother
+
+% Required if using knitr
+\usepackage{alltt}
+\usepackage{fancyvrb}
+\DefineVerbatimEnvironment{Sinput}{Verbatim}{fontshape=sl,formatcom=\color{Rcode},commandchars=\\\{\}}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{formatcom=\color{Rout}}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{formatcom=\color{Rcode}}
+
+\geometry{letterpaper}                  
+\hypersetup{colorlinks=false, allcolors=blue}
+
+\begin{document}
+\begin{Large}
+    \textsf{\textbf{Empirical Bayes: Two-Armed Bandit Simulation Outline}}   \par
+    Statistical Reinforcement Learning Lab
+\end{Large}
+
+\vspace{2ex}
+
+This is a two-armed bandit simulation. The basic notation is as follows: 
+\begin{itemize}
+    \item Participants ($i$): There are 50 participants denoted as $i=1, i=2, \dots, i=50$.
+    \item Decision times ($t$): There are 11 decision times denoted as $t=0, t=1, t=2,\dots,t=11$. 
+    \item Actions ($A$): At every time point, the participant chooses between two possible actions denoted as $a=0$ and $a=1$ respectively. 
+    \item Reward ($R$): Based on the action the participant selects, the participant will receive a reward. $r$ may be equal to any real number. 
+\end{itemize}
+
+\textsf{\textbf {I. Defining the underlying environment}}
+
+Every time a participant chooses an action, the underlying environment will generate a reward either completely at random (e.g., using a random number generator) or performing draws from distributions that may or may not be normal. \\
+
+\textsf{\textbf {II. Learning algorithm}}
+
+The learning algorithm will observe all  actions and rewards  up to and including time $t=11$ on individual $i$. Based on some method, the learning algorithm will estimate the value of a parameter called $\theta_{i,a}$ for each individual and action. These estimates will be called $x_{i,a,t}, i=1,...,50; t=11; a=0,1$.
+The learning algorithm will also output a measure of its uncertainty in the estimate $x_{i,a,t}$ of the parameter $\theta_{i,a}$ for each individual and action.  This uncertainty is denoted by $\sigma_{i,a,t}$.
+
+After each time point $t$, the learning algorithm will share updated $x_{i,a,t}, \sigma_{i,a,t}$ values with the action selection strategy. As there are 50 participants and 2 possible actions, the action selection strategy will receive a total of 200 data points at every time point.  \\
+
+
+\end{document}
+
+%px1 x
+%pxp matrix of uncertainity for each person
+
+%everyone's x is 1x1 MAB code & consult with annie 

@@ -1,0 +1,241 @@
+\documentclass[letterpaper, 11pt]{extarticle}
+\input{preamble}
+\input{format}
+\input{commands}
+\usepackage{newpxmath}
+\usepackage[margin=0.95in]{geometry}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\definecolor{softpurple}{HTML}{9C88B9}
+\definecolor{softblue}{HTML}{B8BDDE}
+\usepackage{cancel}
+\usepackage{csquotes}
+\usepackage{enumitem}
+
+\definecolor{darkblue}{RGB}{13, 39, 61}  % Yankees Blue
+\definecolor{mediumblue}{RGB}{62, 105, 133}  % Teal Blue
+\definecolor{lightblue}{RGB}{138, 167, 188}  % Pewter Blue
+\definecolor{pastelblue}{RGB}{166, 190, 209}  % Pastel Blue
+\definecolor{columbiablue}{RGB}{205, 215, 223}  % Columbia Blue
+\definecolor{graytext}{RGB}{90, 90, 90}  % Neutral grey for comments
+\usepackage{listings}
+\lstset{
+  language=R,
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny,
+  stepnumber=1}
+
+
+\lstset{ 
+  language=R,
+  basicstyle=\ttfamily\small\color{darkblue},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  numbersep=5pt,
+  backgroundcolor=\color{white},
+  showspaces=false,
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=true,
+  captionpos=b,
+  escapeinside={\%*}{*)},
+  commentstyle=\color{graytext},
+  keywordstyle=\color{softpurple},
+  stringstyle=\color{pastelblue}
+}
+
+\setcitestyle{square}
+
+\usepackage{color}
+\usepackage{framed}
+\newcommand{\sam}[1]{
+  {\color{blue} [SAM: {#1}]}
+ }
+ \newcommand{\asl}[1]{
+  {\color{blue} [ASL: {#1}]}
+ }
+
+ \definecolor{nyscolor}{HTML}{a63a47}
+
+\newcommand{\nys}[1]{%
+  {\color{nyscolor} [NYS: {#1}]}%
+}
+
+ \newcommand{\nys}[1]{
+  {\color{blue} [NYS: {#1}]}
+ }
+
+% Custom colors
+\definecolor{shadecolor}{RGB}{255,255,255}  % white background
+\definecolor{Rcode}{RGB}{136, 18, 128}      % keyword purple (similar to print)
+\definecolor{Rout}{RGB}{90, 90, 90}         % output gray
+\definecolor{Rcomment}{RGB}{110,110,110}    % comment gray
+
+% Redefine how R chunks are styled
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd{\@Verbatim}{\fbox}{\color{black}}{}{}
+\makeatother
+
+% Required if using knitr
+\usepackage{alltt}
+\usepackage{fancyvrb}
+\DefineVerbatimEnvironment{Sinput}{Verbatim}{fontshape=sl,formatcom=\color{Rcode},commandchars=\\\{\}}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{formatcom=\color{Rout}}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{formatcom=\color{Rcode}}
+
+\geometry{letterpaper}                  
+\hypersetup{colorlinks=false, allcolors=blue}
+
+\begin{document}
+\begin{Large}
+    \textsf{\textbf{Empirical Bayes Testbed}}   \par
+    Statistical Reinforcement Learning Lab
+\end{Large}
+
+\vspace{2ex}
+
+\textsf{\textbf{Aims}}
+
+Assess the feasibility of an approach to reinforcement learning where the learning component is individualized, but action selection draws on pooled data through empirical Bayes.
+\\
+
+\textsf{\textbf{Notation}}
+
+There are $N$ participants denoted by subscript $i$ with $i \in  [1:N]$ and $T$ decision times denoted by subscript $t$ with $t \in [1:T]$. Each participants has context $x_i$. 
+
+$\mathcal{A}_i^{(t)}$ denotes the action assigned to the participant $i$ at time $t$; $T_{i,a}$ denotes the number of times an individual was assigned action $a$; $\mathcal{R}_{i,a}^{(t)}$ denotes the reward after $\mathcal{A}_i^{(t)}=a$.
+\\
+
+\textsf{\textbf{Underlying True Environment}} 
+
+For any action, $a$, the reward for participant $i$ is generated from a  Gaussian distribution for that participant, where $x_i \in \mathbb{R}^p$, $\boldsymbol{\beta}_{i,a}^* \in \mathbb{R}^p$, and $x_i^\top \boldsymbol{\beta}_{i,a}^* \in \mathbb{R}$. 
+\[
+\mathcal{R}_i^{(t)} \;\big|\; \mathcal{A}_i^{(t)} = a 
+\;\sim\; \mathcal{N}\!\big(x_i^\top \boldsymbol{\beta}_{i,a}, \, \boldsymbol{\Sigma}_{a}^2\big).
+\]
+
+\textit{Individual-level noise}: $\boldsymbol{\Sigma}^2_a$ is constant across participants in a given arm.
+
+\textit{Population-level heterogeneity:} $\boldsymbol{\beta}_{i,a}$ varies across participants and is drawn from a Gaussian distribution:  
+\[
+\boldsymbol{\beta}_{i,a} \;\sim\; \mathcal{N}\!\big(\boldsymbol{\mu}_a^*, \, {\boldsymbol{\Sigma}_a^*}\big).
+\] \asl{I would just make sure the notation of the stars is clear here and in the previous distribution.}
+
+\newpage
+\textsf{\textbf{Algorithm Part I: Learning Algorithm}}
+
+The learning algorithm is \textit{fully individualized}: learning on one individual is never informed by the data of another individual. 
+
+Each individual's model for each arm $a$ is a Bayesian linear regression with Normal–Inverse-Gamma conjugate prior:
+\[
+\mathcal{R}_{i}^{(t)} \mid \mathcal{A}_i^{(t)}=a 
+\;\sim\; \mathcal{N}\!\big((x_{i}^{(t)})^\top \boldsymbol{\beta}_{i,a},\, \sigma_a^{2}\big),
+\qquad
+\boldsymbol{\beta}_{i,a} \mid \sigma_a^{2} \sim 
+\mathcal{N}\!\big(\boldsymbol{\mu}_{0},\, \sigma_a^{2} \mathbf{V}_{0}\big),\;
+\sigma_a^{2}\sim \mathrm{InvGamma}(\alpha_{0},b_{0}).
+\]
+
+\textit{Note:} At the start of the simulation, a prior informed by pooled data from a previous trial is assumed.  For this simulation,
+$\boldsymbol{\mu}_{0}=\mathbf{0}_p$, $\mathbf{V}_{0}=\mathbf{I}_p$, $\alpha_{0}=2.5$, and $b_{0}=1.5$.
+
+After each new observation $(x_{i}^{(t)},\mathcal{R}_{i,a}^{(t)})$,
+the sufficient statistics are updated as follows \cite{murphy2007conjugate}:
+\begin{align*}
+\mathbf{V}_{i,a,t}^{-1} &= \mathbf{V}_{i,a,t-1}^{-1} + x_{i}^{(t)} x_{i}^{(t)\top} \\[2pt]
+\boldsymbol{\mu}_{i,a,t} &= 
+\mathbf{V}_{i,a,t}\!\left(\mathbf{V}_{i,a,t-1}^{-1}\boldsymbol{\mu}_{i,a,t-1}
+      + x_{i}^{(t)} \mathcal{R}_{i,a}^{(t)}\right) \\[2pt]
+\alpha_{i,a,t} &= \alpha_{i,a,t-1} + \tfrac{1}{2} \\[2pt]
+b_{i,a,t} &= b_{i,a,t-1}
++ \tfrac{1}{2}\!\left[(\mathcal{R}_{i,a}^{(t)})^{2}
++ \boldsymbol{\mu}_{i,a,t-1}^\top \mathbf{V}_{i,a,t-1}^{-1}\boldsymbol{\mu}_{i,a,t-1}
+- \boldsymbol{\mu}_{i,a,t}^\top \mathbf{V}_{i,a,t}^{-1}\boldsymbol{\mu}_{i,a,t}\right]
+\end{align*}
+
+The conditional posterior distributions are then
+\[
+\boldsymbol{\beta}_{i,a} \mid \sigma_a^{2},\mathcal{D}_{i,a}^{(t)} 
+\sim \mathcal{N}\!\big(\boldsymbol{\mu}_{i,a,t},\, \sigma_a^{2}\mathbf{V}_{i,a,t}\big),
+\qquad
+\sigma_a^{2}\mid \mathcal{D}_{i,a}^{(t)} 
+\sim \mathrm{InvGamma}(\alpha_{i,a,t}, b_{i,a,t}).
+\]
+
+The marginal posterior variance of the regression coefficients is
+\[
+\operatorname{Var}\!\big(\boldsymbol{\beta}_{i,a}\mid \mathcal{D}_{i,a}^{(t)}\big)
+= \frac{b_{i,a,t}}{\alpha_{i,a,t}-1}\,\mathbf{V}_{i,a,t}.
+\]
+
+These updates are performed independently for each individual and arm after each observed action–reward pair.
+\newpage
+\textsf{\textbf{Algorithm Part II: Action Selection Strategy}}
+
+An empirical Bayes action selection strategy is deployed where action selection is based on pooled data. 
+At each decision point $t$, the policy receives the posterior mean vector 
+$\hat{\boldsymbol{\mu}}_{i,a}^{(t)}$ and covariance matrix $\hat{\boldsymbol{\Sigma}}_{i,a}^{(t)}$ 
+for each individual $i$ and arm $a$ from the learning algorithm.
+
+\textit{Regardless of what learning algorithm was used}, the policy assumes the following posterior distribution for each individual's parameters:
+\[
+\boldsymbol{\beta}_{i,a} \mid \mathcal{D}_{i,a}^{(t)} 
+\;\sim\; \mathcal{N}\!\big(\boldsymbol{\mu}_{i,a}^{(t)},\, \boldsymbol{\Sigma}_{i,a}^{(t)}\big)
+\]
+where:
+\begin{itemize}
+\item $\hat{\boldsymbol{\mu}}_{i,a}^{(t)} \in \mathbb{R}^p$ is the posterior mean vector for individual $i$, arm $a$
+\item $\hat{\boldsymbol{\Sigma}}_{i,a}^{(t)} \in \mathbb{R}^{p \times p}$ is the posterior covariance matrix for individual $i$, arm $a$
+\item $\boldsymbol{\beta}_{i,a}$ is the fixed but unknown true parameter vector for individual $i$, arm $a$
+\end{itemize}
+
+The parameters $\boldsymbol{\beta}_{i,a}$ do not vary with time $t$—only the posterior beliefs about them are updated as new data arrive.
+
+\vspace{0.5em}
+
+The policy pools these posterior estimates across individuals to form updated population-level hyperparameters for each arm and then uses those to guide action selection \cite{doi:10.3102/10769986010002075}.
+
+\begin{enumerate}
+
+\item \textit{Population-level hyperparameter update:}
+All participants' posterior estimates are combined to compute a new population-level mean and covariance for each arm.
+
+For the population mean vector:
+\[
+\hat{\boldsymbol{\mu}}_a^{(t)} \;=\; 
+\left(\sum_{i=1}^N \big(\hat{\boldsymbol{\Sigma}}_{i,a}^{(t)}\big)^{-1}\right)^{-1}
+\!\left(\sum_{i=1}^N \big(\hat{\boldsymbol{\Sigma}}_{i,a}^{(t)}\big)^{-1}\hat{\boldsymbol{\mu}}_{i,a}^{(t)}\right)
+\]
+
+For the population covariance matrix:
+\[
+\hat{\boldsymbol{\Sigma}}_a^{(t)} \;=\; 
+\frac{1}{N} \sum_{i=1}^N 
+\!\Big[
+  \big(\hat{\boldsymbol{\mu}}_{i,a}^{(t)} - \hat{\boldsymbol{\mu}}_a^{(t)}\big)
+  \big(\hat{\boldsymbol{\mu}}_{i,a}^{(t)} - \hat{\boldsymbol{\mu}}_a^{(t)}\big)^\top 
+  + \hat{\boldsymbol{\Sigma}}_{i,a}^{(t)}
+\Big]
+\]
+
+\item \textit{Action selection using the shared policy:}
+For each participant, each arm’s parameter vector is sampled once from the pooled posterior,
+and the action with the highest predicted reward is selected:
+\[
+\tilde{\boldsymbol{\beta}}_{i,a}^{(t)} \sim 
+\mathcal{N}\!\big(\hat{\boldsymbol{\mu}}_a^{(t)},\, \hat{\boldsymbol{\Sigma}}_a^{(t)}\big),
+\qquad
+\mathcal{A}_i^{(t+1)} 
+= \arg\max_{a \in \mathcal{A}} \big(x_{i}^{(t+1)}\big)^{\top}\tilde{\boldsymbol{\beta}}_{i,a}^{(t)}.
+\]
+
+\end{enumerate}
+\newpage
+\bibliographystyle{plain}
+\bibliography{bib}
+
+\end{document}

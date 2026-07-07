@@ -1,0 +1,190 @@
+\documentclass[letterpaper, 11pt]{extarticle}
+\input{preamble}
+\input{format}
+\input{commands}
+\usepackage{newpxmath}
+\usepackage[margin=0.95in]{geometry}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\definecolor{softpurple}{HTML}{9C88B9}
+\definecolor{softblue}{HTML}{B8BDDE}
+\usepackage{cancel}
+\usepackage{csquotes}
+\usepackage{enumitem}
+
+\definecolor{darkblue}{RGB}{13, 39, 61}  % Yankees Blue
+\definecolor{mediumblue}{RGB}{62, 105, 133}  % Teal Blue
+\definecolor{lightblue}{RGB}{138, 167, 188}  % Pewter Blue
+\definecolor{pastelblue}{RGB}{166, 190, 209}  % Pastel Blue
+\definecolor{columbiablue}{RGB}{205, 215, 223}  % Columbia Blue
+\definecolor{graytext}{RGB}{90, 90, 90}  % Neutral grey for comments
+\usepackage{listings}
+\lstset{
+  language=R,
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny,
+  stepnumber=1}
+
+
+\lstset{ 
+  language=R,
+  basicstyle=\ttfamily\small\color{darkblue},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  numbersep=5pt,
+  backgroundcolor=\color{white},
+  showspaces=false,
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=true,
+  captionpos=b,
+  escapeinside={\%*}{*)},
+  commentstyle=\color{graytext},
+  keywordstyle=\color{softpurple},
+  stringstyle=\color{pastelblue}
+}
+
+\setcitestyle{square}
+
+\usepackage{color}
+\usepackage{framed}
+\newcommand{\sam}[1]{
+  {\color{blue} [SAM: {#1}]}
+ }
+ \newcommand{\asl}[1]{
+  {\color{blue} [ASL: {#1}]}
+ }
+
+ \definecolor{nyscolor}{HTML}{a63a47}
+
+\newcommand{\nys}[1]{%
+  {\color{nyscolor} [NYS: {#1}]}%
+}
+
+ \newcommand{\nys}[1]{
+  {\color{blue} [NYS: {#1}]}
+ }
+
+% Custom colors
+\definecolor{shadecolor}{RGB}{255,255,255}  % white background
+\definecolor{Rcode}{RGB}{136, 18, 128}      % keyword purple (similar to print)
+\definecolor{Rout}{RGB}{90, 90, 90}         % output gray
+\definecolor{Rcomment}{RGB}{110,110,110}    % comment gray
+
+% Redefine how R chunks are styled
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd{\@Verbatim}{\fbox}{\color{black}}{}{}
+\makeatother
+
+% Required if using knitr
+\usepackage{alltt}
+\usepackage{fancyvrb}
+\DefineVerbatimEnvironment{Sinput}{Verbatim}{fontshape=sl,formatcom=\color{Rcode},commandchars=\\\{\}}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{formatcom=\color{Rout}}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{formatcom=\color{Rcode}}
+
+\geometry{letterpaper}                  
+\hypersetup{colorlinks=false, allcolors=blue}
+
+\begin{document}
+\begin{Large}
+    \textsf{\textbf{Empirical Bayes: Two-Armed Bandit Simulation Outline}}   \par
+    Statistical Reinforcement Learning Lab
+\end{Large}
+
+\vspace{2ex}
+
+\textsf{\textbf {I. Define underlying environment}}
+
+\begin{enumerate}
+    \item Arbitrarily set true values for hyperparameters for each of the two arms: $\mu_0^*, \tau_0^*, \mu_1^*, \tau_1^*$.
+    \begin{align*}
+    \theta_{i,0} &\;\sim\; \mathcal{N}\!\big(\mu_0^*, \, {\tau_0^*}^2\big)\\
+    \theta_{i,1} &\;\sim\; \mathcal{N}\!\big(\mu_1^*, \, {\tau_1^*}^2\big)   
+    \end{align*}
+    
+    \item For each participant, perform a draw from the two distributions defined above to determine their $\theta_{i,0}^*$ and $\theta_{i,1}^*$.
+    \item Arbitrarily set true values of $\sigma_{0}^{2*}$ and $\sigma_{1}^{2*}$ to describe reward variation in each arm. These are $\textit{known constants}$.
+\end{enumerate}
+
+\textsf{\textbf {II. First time step $(t=0)$}}
+
+\begin{enumerate}
+    \setcounter{enumi}{3}
+    \item Only the first action at $t=0$ will be selected using classical Thompson sampling: 
+    
+    Perform a random draw from $\hat{\theta}_{i,a}\sim \N(0,1)$ for each participant for each arm to determine $\hat{\tilde{\theta}}_{i,a}$. (The same prior distribution is assumed for all participants across all arms for the first action.) Select the action with the higher draw $\hat{\tilde{\theta}}_{i,a}$.
+    \begin{align*}
+        \hat{\tilde{\theta}}_{i,a} &\sim \mathcal{N}(\hat{\mu}_{i,a}, \tau^{*}_{a})\\
+        \mathcal A_i^{(t+1)} &\;=\; \arg\max_{a} \hat{\tilde{\theta}}_{i,a}^{(t)}
+    \end{align*}
+    \item Perform a draw from the true reward distribution to determine the reward for actions selected in step 4 for each participant: $\mathcal{R}_i^{0} \;\big|\; \mathcal{A}_i^{0} = a \;\sim\; \mathcal{N}\!\big(\theta_{i,a}^*, \, \sigma_{a}^{2*}\big)$.
+    \item Given this reward, the learning algorithm will update its beliefs about $\theta^*_{i,a}$ for each participant for the selected arm. (posterior distribution - posterior mean \& posterior variance) say that x is the posterior mean 
+    \item Learning algorithm outputs $x_i$ and $\sigma_i$. $x_i$ is the posterior mean of $\theta$. output has to be the posterior mean for the bivariate vector 
+    $\theta^{*}$
+\end{enumerate}
+
+\textsf{\textbf {III. Empirical Bayes at time $t=1$}}
+
+Describe how empirical Bayes will work. 
+
+Beginning with $t=1$, we will use an empirical Bayes action selection strategy.
+
+The action selection algorithm will be provided with the $\hat{\theta}_{i,a}$ estimated by the learning algorithm. We also know $\sigma_{0}^{2*}$ and $\sigma_{1}^{2*}$, the uncertainty associated with each of these estimates.
+
+\textit{To avoid re-using $\hat{\theta}_{i,a}$, we will call the parameter $M_{i,a}$ in the context of the action selection algorithm}.
+
+\begin{enumerate}
+    \setcounter{enumi}{6}
+    \item Estimate pooled population-level parameters: 
+    $$\hat{\tau_a}^{2} = \arg\max_{v^{2} \ge 0} \, \ell_{p}(\tau_a^{2}), \quad \hat{\mu}_{a} = \frac{\displaystyle\sum_{i=1}^{n} \left(\hat{\tau}_{a}^{2} + \sigma_a^{2*}\right)^{-1} \hat{\theta}_{i,a}}
+    {\displaystyle\sum_{i=1}^{n} \left(\hat{\tau}_{a}^{2} + \sigma_a^{2*}\right)^{-1}}$$
+    \item Perform update using empirical Bayes estimator:  
+    \begin{align*}
+    \textrm{Prior: } M_{i,a} &\sim \mathcal{N}(\hat{\mu}_a,\hat{\tau}^2_a)\\
+    \textrm{Posterior: }M_{i,a} \mid \hat{\theta}_{i,a}
+    &\sim
+    \mathcal{N}\!\Bigg(
+        \lambda_{i,a}\, \hat{\theta}_{i,a}
+        + (1 - \lambda_{i,a})\, \hat{\mu}_a,\;
+        \Bigg(
+            \frac{1}{\sigma_a^{2*}} 
+            + \frac{1}{\hat{\tau}_a^{2}}
+        \Bigg)^{-1}
+    \Bigg), 
+    \qquad
+    \lambda_{i,a}
+    =
+    \frac{\sigma_a^{2*}}
+    {\sigma_a^{2*} + \hat{\tau}_a^{2}}
+    \end{align*}
+    \item Perform a random draw for each person for each arm from the posterior distribution of $\hat{\tilde{M}}_{i,a}$. Select the arm with the higher draw.
+    \begin{align*}
+        \mathcal A_i^{(t)} &\;=\; \arg\max_{a} \hat{\tilde{M}}_{i,a}^{(t)}
+    \end{align*}
+    \item We will again determine the reward as follows: $$\mathcal{R}_i^{t} \;\big|\; \mathcal{A}_i^{t} = a \;\sim\; \mathcal{N}\!\big(\theta_{i,a}^*, \, \sigma_{a}^{2*}\big)$$ 
+    \item The learning algorithm will again update its estimate of each individual's parameters. These estimates will again be pooled by the action selection algorithm to determine the action at the next time point.
+\end{enumerate}
+\textsf{\textbf {IV. Evaluation}}
+\begin{enumerate}
+\setcounter{enumi}{11}
+    \item Cumulative reward and other metrics are computed to assess algorithm performance. 
+\end{enumerate}
+
+\end{document}
+
+%px1 x
+%pxp matrix of uncertainity for each person
+
+%everyone's x is 1x1 MAB code & consult with annie 
+
+% UNIFORMLY DRAW ACTIONS FOR FIRST STEP
+% CHECK EXAMPLES OF PSEUDOCODE
+% DON'T ALLOW IMPUTING FROM REVIEWERS 
+% UPDATES POSTERIOR MEAN AND POSTERIOR VARIANCE 
+% THETA I STAR ITEM 6
+% PUT STAR ON THETA 

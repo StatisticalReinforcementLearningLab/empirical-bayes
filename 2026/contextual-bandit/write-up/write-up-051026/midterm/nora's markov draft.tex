@@ -1,0 +1,86 @@
+\subsectiontitle{Markov Decision Process}
+
+In this section, we move away from bandit models towards a setting with a linear Markov transition model, which includes a state variable. 
+
+\subsubsectiontitle{True Environment}
+
+We now define a state variable: $s_{i,t} \in \mathbb{R}$. (We also remove context variable $c_i$ that was used in the contextual bandit.) The state variable can be thought of as anything that can be measured on a continuous scale from $-\infty$ to $\infty$—for example, happiness. 
+
+initial state (\enquote{happiness}): $s_{i,1} \sim \mathcal{N}(\mu_{s_0} \sigma_{s_0}^2)$ everyone's initial happiness is a random draw from this distribution
+
+state transitions: $s_{i,t+1} \mid s_{i,t}, a_{i,t}
+\sim
+\mathcal{N}
+\left(
+\alpha_i + \beta_i s_{i,t} + \gamma_i a_{i,t}
+\,
+\sigma_s^2
+\right).$
+
+% kellman filtering / bayesian linear regression
+
+% sigma should be a function of the s
+% design matrix needs to be full rank, if not full rank need to do ridge regression
+% intercept always 1 c_i is always 1
+% talk to gemini 
+
+same for all $i$
+
+$\alpha_{i}$: starting happiness
+
+$\beta_{i}$: contribution of current happiness to next time pont happiness
+
+$\gamma_{i}$: contribution of state to next time point happiness
+
+$\sigma_{s}$: random happiness fluctuations
+
+$\alpha_i, \beta_i, \gamma_i, \sigma^2_s, \sigma^2_r$ are \textit{constant} across the entire population.
+
+rewards are determined as follows: 
+$r_{i,t}
+=
+\theta_i^\top
+\begin{pmatrix}
+1\\
+s_{i,t}\\
+a_{i,t}\\
+s_{i,t}a_{i,t}
+\end{pmatrix}
++
+\eta_{i,t}, $ $\eta_{i,t} \sim \mathcal{N}(0,\sigma_r^2)$ (random reward fluctuations)
+
+$\theta_i =
+\begin{pmatrix}
+\theta_{i,0} \\
+\theta_{i,1} \\
+\theta_{i,2} \\
+\theta_{i,3}
+\end{pmatrix}$, $\theta_i \sim \mathcal N(\mu_\theta,\Sigma_\theta)$ varies by person and drawn from underlying population distribution
+
+\subsubsectiontitle{Action Selection Strategy}
+
+Produces four estimates for each participant at each time point: $\hat{\theta}_{i,0,t},\; \hat{\theta}_{i,1,t},\; \hat{\theta}_{i,2,t},\; \hat{\theta}_{i,3,t}$ and four measures of uncertainty: $\hat{\Sigma}_{\theta,i,t}
+=
+\operatorname{diag}
+\left(
+\hat{\sigma}^2_{\theta_{i,0,t}},
+\hat{\sigma}^2_{\theta_{i,1,t}},
+\hat{\sigma}^2_{\theta_{i,2,t}},
+\hat{\sigma}^2_{\theta_{i,3,t}}
+\right).$
+
+\subsubsectiontitle{Decision-Making Algorithm}
+
+Decision-making algorithm receives eight numbers (four estimated means, four measures of uncertainty) per participant per time point.
+
+The action selection strategy believes...
+
+$\hat{\theta}_{i,t} \sim
+\mathcal{N}(\theta_i,\Sigma_{\theta,i,t})$
+
+$\theta_i \sim
+\mathcal{N}(\mu_\theta,\Sigma_\theta)$
+
+$\Sigma_\theta =
+\operatorname{diag}
+(\sigma^2_{\theta,0},\sigma^2_{\theta,1},\sigma^2_{\theta,2},\sigma^2_{\theta,3})$

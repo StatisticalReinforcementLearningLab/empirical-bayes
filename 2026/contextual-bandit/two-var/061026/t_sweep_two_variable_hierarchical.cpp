@@ -701,14 +701,14 @@ int main(int argc, char** argv) {
     double p_context = 0.5;
     double p_state = 0.5;
 
-    // Conjecture 5 baseline: large main, small context, large state effects.
+    // Conjecture 3/4 baseline: small main/context/state treatment effects.
     std::vector<Vec> mu_a = {
         {0.0, 0.0, 0.0},
-        {0.40, 0.05, 0.30}
+        {0.10, 0.05, 0.05}
     };
     std::vector<M3> Sigma_a = {
-        diag3(0.50, 0.25, 0.75),
-        diag3(0.50, 0.25, 0.75)
+        diag3(0.50, 0.50, 0.50),
+        diag3(0.50, 0.50, 0.50)
     };
 
     Vec mu_prior2 = {0.0, 0.0};       // learning prior for x^L=(1,s)

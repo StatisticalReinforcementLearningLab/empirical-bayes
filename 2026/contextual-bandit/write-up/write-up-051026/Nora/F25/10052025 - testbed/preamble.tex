@@ -1,0 +1,74 @@
+
+% \usepackage{fontspec}
+
+% ==================================================
+
+% document parameters
+% \usepackage[spanish, mexico, es-lcroman]{babel}
+\usepackage[english]{babel}
+\usepackage[margin = 1in]{geometry}
+
+% ==================================================
+
+% Packages for math
+\usepackage{mathrsfs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{physics}
+\usepackage{dsfont}
+\usepackage{esint}
+
+% ==================================================
+
+% Packages for writing
+\usepackage{enumerate}
+\usepackage[shortlabels]{enumitem}
+\usepackage{framed}
+\usepackage{csquotes}
+
+% ==================================================
+
+% Miscellaneous packages
+\usepackage{float}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{multicol}
+\usepackage{subcaption}
+\usepackage{caption}
+\captionsetup{format = hang, margin = 10pt, font = small, labelfont = bf}
+
+% Citation
+\usepackage[round, authoryear]{natbib}
+
+% Hyperlinks setup
+\usepackage{hyperref}
+\definecolor{links}{rgb}{0.36,0.54,0.66}
+\hypersetup{
+   colorlinks = true,
+    linkcolor = black,
+     urlcolor = blue,
+    citecolor = blue,
+    filecolor = blue,
+    pdfauthor = {Author},
+     pdftitle = {Title},
+   pdfsubject = {subject},
+  pdfkeywords = {one, two},
+  pdfproducer = {LaTeX},
+   pdfcreator = {pdfLaTeX},
+   }
+
+
+
+   REMOVE PRIOR ON VARIANCE PRETEND IT'S KNOWN
+   Make sure to differentiate between parameters and estimators -- don't forget hats
+
+    Write this outputs blahblahblah like pseudocode
+    Make sure reader knows what are you outputting. Total output is x_i. 
+    What is V?? Pretend the x_i are just given. Conditioning on the x_i. 
+    Clarify what is random and what is it not. 
+    V is then not an estimator because you are conditioning on the x, which are positioned as being known. 
+    Get rid of the inverse gamma on sigma. 
+    Might want to change x_i variable. Too many x_i. 
+    If you're estimating, use a hat. Fix notation. 

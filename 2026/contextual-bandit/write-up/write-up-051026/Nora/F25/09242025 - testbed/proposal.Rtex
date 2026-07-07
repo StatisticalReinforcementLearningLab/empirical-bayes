@@ -1,0 +1,188 @@
+\documentclass[letterpaper, 11pt]{extarticle}
+\input{preamble}
+\input{format}
+\input{commands}
+\usepackage{newpxmath}
+\usepackage[margin=0.95in]{geometry}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\definecolor{softpurple}{HTML}{9C88B9}
+\definecolor{softblue}{HTML}{B8BDDE}
+\usepackage{cancel}
+\usepackage{csquotes}
+\usepackage{enumitem}
+
+\definecolor{darkblue}{RGB}{13, 39, 61}  % Yankees Blue
+\definecolor{mediumblue}{RGB}{62, 105, 133}  % Teal Blue
+\definecolor{lightblue}{RGB}{138, 167, 188}  % Pewter Blue
+\definecolor{pastelblue}{RGB}{166, 190, 209}  % Pastel Blue
+\definecolor{columbiablue}{RGB}{205, 215, 223}  % Columbia Blue
+\definecolor{graytext}{RGB}{90, 90, 90}  % Neutral grey for comments
+\usepackage{listings}
+\lstset{
+  language=R,
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny,
+  stepnumber=1}
+
+
+\lstset{ 
+  language=R,
+  basicstyle=\ttfamily\small\color{darkblue},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  numbersep=5pt,
+  backgroundcolor=\color{white},
+  showspaces=false,
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=true,
+  captionpos=b,
+  escapeinside={\%*}{*)},
+  commentstyle=\color{graytext},
+  keywordstyle=\color{softpurple},
+  stringstyle=\color{pastelblue}
+}
+
+\usepackage{color}
+\usepackage{framed}
+\newcommand{\sam}[1]{
+  {\color{blue} [SAM: {#1}]}
+ }
+
+% Custom colors
+\definecolor{shadecolor}{RGB}{255,255,255}  % white background
+\definecolor{Rcode}{RGB}{136, 18, 128}      % keyword purple (similar to print)
+\definecolor{Rout}{RGB}{90, 90, 90}         % output gray
+\definecolor{Rcomment}{RGB}{110,110,110}    % comment gray
+
+% Redefine how R chunks are styled
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd{\@Verbatim}{\fbox}{\color{black}}{}{}
+\makeatother
+
+% Required if using knitr
+\usepackage{alltt}
+\usepackage{fancyvrb}
+\DefineVerbatimEnvironment{Sinput}{Verbatim}{fontshape=sl,formatcom=\color{Rcode},commandchars=\\\{\}}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{formatcom=\color{Rout}}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{formatcom=\color{Rcode}}
+
+\geometry{letterpaper}                  
+\hypersetup{colorlinks=false, allcolors=blue}
+
+\begin{document}
+\begin{Large}
+    \textsf{\textbf{Empirical Bayes Testbed}}   \par
+    Statistical Reinforcement Learning Lab
+\end{Large}
+
+\vspace{2ex}
+
+\textsf{\textbf{Aims}}
+
+Assess the feasibility of an approach to reinforcement learning where the learning component is individualized, but action selection draws on pooled data through empirical Bayes.
+\\
+
+\textsf{\textbf{Notation}}
+
+There are $N$ participants denoted by subscript $i$ with $i \in  [1:N]$ and $T$ decision times denoted by subscript $t$ with $t \in [1:T]$. Each participants has context $x_i$. 
+
+$\mathcal{A}_i^{(t)}$ denotes the action assigned to the participant $i$ at time $t$; $T_{i,a}$ denotes the number of times an individual was assigned action $a$; $\mathcal{R}_{i,a}^{(t)}$ denotes the reward after $\mathcal{A}_i^{(t)}=a$.
+\\
+
+\textsf{\textbf{Underlying True Environment}} 
+
+For any action, $a$, the reward for participant $i$ is generated from a  Gaussian distribution for that participant, where $x_i \in \mathbb{R}^p$, $\beta_{i,a}^* \in \mathbb{R}^p$, and $x_i^\top \beta_{i,a}^* \in \mathbb{R}$. 
+\[
+\mathcal{R}_i^{(t)} \;\big|\; \mathcal{A}_i^{(t)} = a 
+\;\sim\; \mathcal{N}\!\big(x_i^\top \beta_{i,a}, \, \sigma_{a}^2\big).
+\]
+
+\textit{Individual-level noise}: $\sigma^2_a$ is constant across participants in a given arm.
+
+\textit{Population-level heterogeneity:} $\beta_{i,a}$ varies across participants and is drawn from a Gaussian distribution:  
+\[
+\beta_{i,a} \;\sim\; \mathcal{N}\!\big(\mu_a^*, \, {\Sigma_a^*}\big).
+\]
+
+\newpage
+\textsf{\textbf{Algorithm Part I: Learning Algorithm}}
+
+The learning algorithm is \textit{fully individualized}: Learning on one individual is never informed by the data of another individual. 
+
+The learning algorithm selected for this simulation is a Bayesian linear regression model, which estimates a posterior distribution for the parameters for each arm separately for each individual. However, this algorithm could easily be exchanged for a more sophisticated algorithm (in which case the $\beta_{ia}$ are unknown weights in this more sophisticated algorithm) to pair with the empirical Bayes action selection strategy described in the next section. 
+
+The prior \sam{I think you mean posterior?} distribution of the parameter for individual $i$ at time $t$ is:
+$$\hat{\beta}^{(t-1)}_{i,a} \sim 
+\mathcal{N}\!\big(\hat{\mu}_{i,a}^{(t-1)},\, \hat{\Sigma}_{i,a}^{(t-1)}\big)$$
+
+\textit{Note:} At the start of the simulation, a prior, which is hypothetically informed by pooled data from a previous trial, will be assumed for all individuals. For this simulation, $\hat{\beta}_{\text{prior}}\sim \N(0,1)$ will be used.
+
+The algorithm will perform a posterior update \textit{independently for each individual} using only their own data after each action-reward pair according to the following procedure:
+
+\begin{enumerate}
+
+\item \textit{Estimate individual-level noise}: \sam{From above I thought the the variance was the same for all people?--so does not vary by $i$?}  Variance will be estimated using Maximum a Posteriori (MAP) estimation where an inverse gamma distribution is assumed for $\hat{\sigma}_{i,a}^{2\,(t-1)}$: $$\hat{\sigma}_{i,a}^{2\,(t-1)} \sim \textrm{Inv-Gamma}(\hat{\alpha}_{i,a}^{(t-1)},\hat{\beta}_{i,a}^{(t-1)})$$
+\sam{not sure what we mean by above.  maybe we mean that the posterior of the $i$th individual's variance is the above inv-gamma distribution?}
+
+\textit{Note:} At the start of the simulation, $\hat{\alpha}_{\textrm{prior}}=2.5, \hat{\beta}_{\textrm{prior}}=1.5$ is assumed for all individuals. 
+
+Following each observation, we update the hyperparameters as follows:
+\begin{align*}
+\hat{\alpha}^{(t)}_{i,a} &= \hat{\alpha}^{(t-1)}_{i,a} + \tfrac{T_{i,a}}{2} \\
+\hat{\beta}^{(t)}_{i,a} &= \hat{\beta}^{(t-1)}_{i,a} + \tfrac{1}{2} \left( \mathcal{R}^{(t)}_{i,a} - x_i^T \hat{\beta}^{(t-1)}_{i,a} \right)^2
+\end{align*}
+
+Then, we update the MAP estimate for the variance as follows:
+
+\[
+\hat{\sigma}^{2(t)}_{i,a} = \frac{\hat{\beta}^{(t)}_{i,a}}{\hat{\alpha}^{(t)}_{i,a} + 1}
+\]
+\sam{What reference/derivations did you use get this formula?}
+
+\item \textit{Individual-level posterior update}: Using the Normal-Normal Conjugacy, each participant's hyperparameters will be updated. The posterior distribution $\hat{\beta}^{(t)}_{i,a}$ is
+$$\hat{\beta}^{(t)}_{i,a} \mid \mathcal{R}_{i,a}^{(t)} 
+\;\sim\; \mathcal{N}\!\big(\hat{\mu}_{i,a}^{(t)}, \, \hat{\Sigma}_{i,a}^{(t)}\big)$$
+where:
+$$\hat{\Sigma}^{(t)}_{i,a} &= \left( \left( \hat{\Sigma}^{(t-1)}_{i,a} \right)^{-1} + \frac{x_i x_i^T}{\hat{\sigma}^{2(t)}_{i,a}} \right)^{-1}, \quad \hat{\mu}^{(t)}_{i,a} &= \hat{\Sigma}^{(t)}_{i,a} \left( \left( \hat{\Sigma}^{(t-1)}_{i,a} \right)^{-1} \hat{\mu}^{(t-1)}_{i,a} + \frac{x_i \mathcal{R}^{(t)}_{i,a}}{\hat{\sigma}^{2(t)}_{i,a}} \right)$$
+
+\end{enumerate}
+\newpage
+\textsf{\textbf{Algorithm Part II: Action Selection Strategy}}
+
+An empirical Bayes action selection strategy will be deployed where action selection is based on pooled data. At each decision point $t$, the policy receives the values $\big(\hat{\mu}_{i,a}^{(t)},\, \hat{\Sigma}_{i,a}^{(t)}\big)$ for each individual for each arm. 
+
+\textit{Regardless of what learning algorithm was used}, the policy assumes the following distribution for each individual's parameters:
+$$\beta^{(t)}_{i,a} \sim 
+\mathcal{N}\!\big(\hat{\mu}_{i,a}^{(t)},\, \hat{\Sigma}_{i,a}^{(t)}\big)$$
+\sam{I think in the above you mean the posterior distribution for the individual's parameters.. and $\beta^{(t)}_{i,a}$ does not vary with $t$. Please check with Annie...}
+
+The policy will pool the parameters and select an action for each individual through an independent draw from this pooled distribution as follows:
+
+\begin{enumerate}
+
+\item \textit{Population-level hyperparameter update}: All participants' posterior hyperparameters will be used to determine a new set of shared hyperparameters for the distribution of $\hat{\beta}_{i,a}$ in the population using inverse-variance weighting for the mean and a method of moments/ML estimator for the variance (Raudenbush \& Bryk, 1985).   \sam{most of the time $\beta^{(t)}_{i,a}$ is a vector....}
+\[
+\hat{\mu}_a^{(t)} \;=\; 
+\frac{\displaystyle \sum_{i=1}^N \frac{\hat{\mu}_{i,a}^{(t)}}{\hat{\Sigma}_{i,a}^{(t)}}}
+     {\displaystyle \sum_{i=1}^N \frac{1}{\hat{\Sigma}_{i,a}^{(t)}}}
+\]
+\[
+\hat{\Sigma}_a^{(t)} \;=\; 
+\frac{1}{N} \sum_{i=1}^N 
+\left[ \left(\hat{\mu}_{i,a}^{(t)} - \hat{\mu}_a^{(t)}\right)^2 
++ \hat{\Sigma}_{i,a}^{(t)} \right]
+\]
+
+\item \textit{Action selection using shared policy}: $\mathcal{A}_i^{(t+1)}$ will be determined for each individual using the updated set of shared hyperparameters. For each participant, each arm will be sampled once, the reward estimated based on the individual's context, and the arm with the highest estimated reward will be selected.
+$$\hat{\beta}^{(t)}_{i,a} \sim\; \mathcal{N}\!\big(\hat{\mu}_{a}^{(t)}, \, \hat{\Sigma}_{a}^{\,(t)}\big)$$
+$$\mathcal A_i^{(t+1)} \;=\; \arg\max_{a} x_i^{\top}\hat{\beta}_{i,a}^{(t)}$$
+
+\end{enumerate}
+
+\end{document}
