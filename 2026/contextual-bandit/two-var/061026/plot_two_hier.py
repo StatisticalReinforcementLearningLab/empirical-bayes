@@ -1,6 +1,8 @@
 import os
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 # Two-variable T-sweep plotting file.
@@ -54,6 +56,7 @@ def best_ranges(df):
 
 
 def main():
+    import sys
     plt.rcParams['font.family'] = 'serif'
     plt.rcParams['font.size'] = 12
     plt.rcParams['axes.labelsize'] = 13
@@ -63,8 +66,10 @@ def main():
     plt.rcParams['ytick.labelsize'] = 11
 
     # ---------- file paths ----------
-    csv_path = "testing_070626/test1_a.csv"
-    output_path = "testing_070626/test1_a.png"
+    csv_path = sys.argv[1] if len(sys.argv) > 1 else "testing_070626/test1_a.csv"
+    output_path = sys.argv[2] if len(sys.argv) > 2 else "testing_070626/test1_a.png"
+    n_override = int(sys.argv[3]) if len(sys.argv) > 3 else None
+    runs_override = int(sys.argv[4]) if len(sys.argv) > 4 else None
 
     if not os.path.exists(csv_path):
         raise FileNotFoundError(
@@ -95,26 +100,21 @@ def main():
 
     # ---------- single source of truth for environment parameters ----------
     # Keep these synchronized with t_sweep_two_variable.cpp.
-    n = 10
-    runs_per_T = 200
-    p_context = 0.5
-    p_state = 0.5
+    n = n_override if n_override is not None else 10
+    runs_per_T = runs_override if runs_override is not None else 200
+    p_context = float(sys.argv[11]) if len(sys.argv) > 11 else 0.5
+    p_state = float(sys.argv[12]) if len(sys.argv) > 12 else 0.5
+
+    mu1 = [float(sys.argv[i]) for i in (5, 6, 7)] if len(sys.argv) > 7 else [0.40, 0.20, 0.20]
+    sdiag = [float(sys.argv[i]) for i in (8, 9, 10)] if len(sys.argv) > 10 else [0.50, 0.50, 0.50]
 
     mu_a = {
         0: np.array([0.00, 0.00, 0.00]),
-        1: np.array([0.40, 0.20, 0.20]),
+        1: np.array(mu1),
     }
     Sigma_a = {
-        0: np.array([
-            [0.50, 0.00, 0.00],
-            [0.00, 0.50, 0.00],
-            [0.00, 0.00, 0.50],
-        ]),
-        1: np.array([
-            [0.50, 0.00, 0.00],
-            [0.00, 0.50, 0.00],
-            [0.00, 0.00, 0.50],
-        ]),
+        0: np.diag(sdiag),
+        1: np.diag(sdiag),
     }
 
     sigma_r = 0.5
@@ -318,7 +318,7 @@ def main():
             else:
                 print(f"  {winner}: T in [{int(start)}, {int(end)}]")
 
-    plt.show()
+    plt.close(fig)
 
 
 if __name__ == "__main__":

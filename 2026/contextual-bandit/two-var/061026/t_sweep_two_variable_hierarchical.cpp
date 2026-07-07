@@ -692,7 +692,8 @@ double hierarchical_ts(int T, int n, const Env& env, double sigma_r, double lam,
 }
 
 // ---------------- Main ----------------
-int main() {
+// argv: [1]=out_csv_path [2]=T_start [3]=T_end [4]=T_step [5]=n [6]=runs
+int main(int argc, char** argv) {
     int n = 10;
     int runs = 200;
     double sigma_r = 0.5;
@@ -700,24 +701,33 @@ int main() {
     double p_context = 0.5;
     double p_state = 0.5;
 
-    // Conjecture 1 baseline: large main/context/state treatment effects.
+    // Conjecture 5 baseline: large main, small context, large state effects.
     std::vector<Vec> mu_a = {
         {0.0, 0.0, 0.0},
-        {0.40, 0.20, 0.20}
+        {0.40, 0.05, 0.30}
     };
     std::vector<M3> Sigma_a = {
-        diag3(0.50, 0.50, 0.50),
-        diag3(0.50, 0.50, 0.50)
+        diag3(0.50, 0.25, 0.75),
+        diag3(0.50, 0.25, 0.75)
     };
 
     Vec mu_prior2 = {0.0, 0.0};       // learning prior for x^L=(1,s)
     Vec mu_prior3 = {0.0, 0.0, 0.0};  // population/pooled prior for theta=(intercept,c,s)
 
+    std::string out_path = "testing_070626/test1_a.csv";
+    int T_start = 1, T_end = 25, T_step = 1;
+    if (argc > 1) out_path = argv[1];
+    if (argc > 2) T_start = std::stoi(argv[2]);
+    if (argc > 3) T_end   = std::stoi(argv[3]);
+    if (argc > 4) T_step  = std::stoi(argv[4]);
+    if (argc > 5) n       = std::stoi(argv[5]);
+    if (argc > 6) runs    = std::stoi(argv[6]);
+
     IVec T_values;
-    for (int Tv=1; Tv<=25; Tv+=1) T_values.push_back(Tv);
+    for (int Tv=T_start; Tv<=T_end; Tv+=T_step) T_values.push_back(Tv);
     int nT = T_values.size();
 
-    std::ofstream out("testing_070626/test1_a.csv");
+    std::ofstream out(out_path);
     out << "T,mean_unpooled,se_unpooled,mean_pooled,se_pooled,"
         << "mean_eb,se_eb,mean_hier,se_hier,final_shrinkage,winner\n";
 
@@ -791,6 +801,6 @@ int main() {
     }
 
     out.close();
-    std::cout << "\nDone! Results written to testing_070626/test1_a.csv\n";
+    std::cout << "\nDone! Results written to " << out_path << "\n";
     return 0;
 }
