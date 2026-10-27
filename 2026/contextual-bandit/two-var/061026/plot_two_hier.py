@@ -66,8 +66,10 @@ def main():
     plt.rcParams['ytick.labelsize'] = 11
 
     # ---------- file paths ----------
-    csv_path = sys.argv[1] if len(sys.argv) > 1 else "testing_070626/test1_a.csv"
-    output_path = sys.argv[2] if len(sys.argv) > 2 else "testing_070626/test1_a.png"
+
+    # HERE
+    csv_path = sys.argv[1] if len(sys.argv) > 1 else "simulations_102926/conj1a.csv"
+    output_path = sys.argv[2] if len(sys.argv) > 2 else "simulations_102926/conj1a.png"
     n_override = int(sys.argv[3]) if len(sys.argv) > 3 else None
     runs_override = int(sys.argv[4]) if len(sys.argv) > 4 else None
 
@@ -100,8 +102,8 @@ def main():
 
     # ---------- single source of truth for environment parameters ----------
     # Keep these synchronized with t_sweep_two_variable.cpp.
-    n = n_override if n_override is not None else 10
-    runs_per_T = runs_override if runs_override is not None else 200
+    n = n_override if n_override is not None else 100
+    runs_per_T = runs_override if runs_override is not None else 100
     p_context = float(sys.argv[11]) if len(sys.argv) > 11 else 0.5
     p_state = float(sys.argv[12]) if len(sys.argv) > 12 else 0.5
 
@@ -140,7 +142,8 @@ def main():
         ('mean_unpooled', 'se_unpooled', 'Unpooled TS', 'unpooled'),
         ('mean_pooled', 'se_pooled', 'Pooled TS', 'pooled'),
         ('mean_eb', 'se_eb', 'EB', 'eb'),
-        ('mean_hier', 'se_hier', 'Hierarchical TS', 'hier'),
+        # REMOVING GREEN LINE #3 FINAL!
+        # ('mean_hier', 'se_hier', 'Hierarchical TS', 'hier'),
     ]:
         ax.plot(
             df['T'], df[col],

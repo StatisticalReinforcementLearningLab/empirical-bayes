@@ -694,8 +694,8 @@ double hierarchical_ts(int T, int n, const Env& env, double sigma_r, double lam,
 // ---------------- Main ----------------
 // argv: [1]=out_csv_path [2]=T_start [3]=T_end [4]=T_step [5]=n [6]=runs
 int main(int argc, char** argv) {
-    int n = 10;
-    int runs = 200;
+    int n = 100;
+    int runs = 100;
     double sigma_r = 0.5;
     double lam = 1e-6;
     double p_context = 0.5;
@@ -704,7 +704,7 @@ int main(int argc, char** argv) {
     // Conjecture 3/4 baseline: small main/context/state treatment effects.
     std::vector<Vec> mu_a = {
         {0.0, 0.0, 0.0},
-        {0.10, 0.05, 0.05}
+        {0.40, 0.20, 0.20}
     };
     std::vector<M3> Sigma_a = {
         diag3(0.50, 0.50, 0.50),
@@ -714,7 +714,8 @@ int main(int argc, char** argv) {
     Vec mu_prior2 = {0.0, 0.0};       // learning prior for x^L=(1,s)
     Vec mu_prior3 = {0.0, 0.0, 0.0};  // population/pooled prior for theta=(intercept,c,s)
 
-    std::string out_path = "testing_070626/test1_a.csv";
+    // HERE ! 
+    std::string out_path = "simulations_102926/conj1a.csv";
     int T_start = 1, T_end = 25, T_step = 1;
     if (argc > 1) out_path = argv[1];
     if (argc > 2) T_start = std::stoi(argv[2]);
@@ -755,8 +756,10 @@ int main(int argc, char** argv) {
             double reg_e = empirical_bayes(T, n, env, sigma_r, lam,
                                            mu_prior2, mu_prior3, rng_e, run_shrinkage);
 
-            std::mt19937_64 rng_h(r + 5000 + ti*10000);
-            double reg_h = hierarchical_ts(T, n, env, sigma_r, lam, mu_prior3, rng_h);
+            // REMOVING GREEN LINE #1                               
+            // std::mt19937_64 rng_h(r + 5000 + ti*10000);
+            // double reg_h = hierarchical_ts(T, n, env, sigma_r, lam, mu_prior3, rng_h);
+            double reg_h = 0.0;
 
             sum_u += reg_u; ssq_u += reg_u*reg_u;
             sum_p += reg_p; ssq_p += reg_p*reg_p;
@@ -778,7 +781,9 @@ int main(int argc, char** argv) {
         double avg_shrinkage = sum_shrinkage / runs;
 
         std::string winner;
-        double m = std::min({mu_u, mu_p, mu_e, mu_h});
+        // REMOVING GREEN LINE #2!
+        // double m = std::min({mu_u, mu_p, mu_e, mu_h});
+        double m = std::min({mu_u, mu_p, mu_e});
         if      (mu_u == m) winner="Unpooled";
         else if (mu_p == m) winner="Pooled";
         else if (mu_e == m) winner="EB";
